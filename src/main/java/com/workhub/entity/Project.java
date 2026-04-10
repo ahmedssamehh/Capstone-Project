@@ -11,7 +11,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * Project Entity - Represents a project in the multi-tenant system
@@ -156,7 +155,7 @@ public class Project {
      * Essential for multi-tenant queries and validation
      */
     @Transient
-    public UUID getTenantId() {
+    public Long getTenantId() {
         return tenant != null ? tenant.getId() : null;
     }
 

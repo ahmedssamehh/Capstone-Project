@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * User Repository - Data access layer for User entity
@@ -59,7 +58,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return List of users in the tenant
      */
     @Query("SELECT u FROM User u WHERE u.tenant.id = :tenantId")
-    List<User> findByTenantId(@Param("tenantId") UUID tenantId);
+    List<User> findByTenantId(@Param("tenantId") Long tenantId);
 
     /**
      * Find user by ID and tenant ID
@@ -70,7 +69,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return Optional containing user if found in tenant
      */
     @Query("SELECT u FROM User u WHERE u.id = :id AND u.tenant.id = :tenantId")
-    Optional<User> findByIdAndTenantId(@Param("id") Long id, @Param("tenantId") UUID tenantId);
+    Optional<User> findByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     /**
      * Find user by email and tenant ID
@@ -80,7 +79,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return Optional containing user if found
      */
     @Query("SELECT u FROM User u WHERE u.email = :email AND u.tenant.id = :tenantId")
-    Optional<User> findByEmailAndTenantId(@Param("email") String email, @Param("tenantId") UUID tenantId);
+    Optional<User> findByEmailAndTenantId(@Param("email") String email, @Param("tenantId") Long tenantId);
 
     // ========================================
     // ROLE-BASED QUERIES
@@ -94,7 +93,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return List of users with the specified role
      */
     @Query("SELECT u FROM User u WHERE u.tenant.id = :tenantId AND u.role = :role")
-    List<User> findByTenantIdAndRole(@Param("tenantId") UUID tenantId, @Param("role") User.UserRole role);
+    List<User> findByTenantIdAndRole(@Param("tenantId") Long tenantId, @Param("role") User.UserRole role);
 
     /**
      * Find tenant admins
@@ -102,7 +101,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param tenantId Tenant ID
      * @return List of admin users
      */
-    default List<User> findTenantAdmins(UUID tenantId) {
+    default List<User> findTenantAdmins(Long tenantId) {
         return findByTenantIdAndRole(tenantId, User.UserRole.TENANT_ADMIN);
     }
 
@@ -112,7 +111,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param tenantId Tenant ID
      * @return List of regular users
      */
-    default List<User> findTenantUsers(UUID tenantId) {
+    default List<User> findTenantUsers(Long tenantId) {
         return findByTenantIdAndRole(tenantId, User.UserRole.TENANT_USER);
     }
 
@@ -128,7 +127,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return List of users with the specified status
      */
     @Query("SELECT u FROM User u WHERE u.tenant.id = :tenantId AND u.status = :status")
-    List<User> findByTenantIdAndStatus(@Param("tenantId") UUID tenantId, @Param("status") User.UserStatus status);
+    List<User> findByTenantIdAndStatus(@Param("tenantId") Long tenantId, @Param("status") User.UserStatus status);
 
     /**
      * Find active users in tenant
@@ -136,7 +135,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param tenantId Tenant ID
      * @return List of active users
      */
-    default List<User> findActiveUsersByTenantId(UUID tenantId) {
+    default List<User> findActiveUsersByTenantId(Long tenantId) {
         return findByTenantIdAndStatus(tenantId, User.UserStatus.ACTIVE);
     }
 
@@ -146,7 +145,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param tenantId Tenant ID
      * @return List of inactive users
      */
-    default List<User> findInactiveUsersByTenantId(UUID tenantId) {
+    default List<User> findInactiveUsersByTenantId(Long tenantId) {
         return findByTenantIdAndStatus(tenantId, User.UserStatus.INACTIVE);
     }
 
@@ -164,7 +163,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u WHERE u.tenant.id = :tenantId " +
            "AND (LOWER(u.firstName) LIKE LOWER(CONCAT('%', :name, '%')) " +
            "OR LOWER(u.lastName) LIKE LOWER(CONCAT('%', :name, '%')))")
-    List<User> searchByNameInTenant(@Param("tenantId") UUID tenantId, @Param("name") String name);
+    List<User> searchByNameInTenant(@Param("tenantId") Long tenantId, @Param("name") String name);
 
     /**
      * Search users by email in tenant
@@ -175,7 +174,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     @Query("SELECT u FROM User u WHERE u.tenant.id = :tenantId " +
            "AND LOWER(u.email) LIKE LOWER(CONCAT('%', :email, '%'))")
-    List<User> searchByEmailInTenant(@Param("tenantId") UUID tenantId, @Param("email") String email);
+    List<User> searchByEmailInTenant(@Param("tenantId") Long tenantId, @Param("email") String email);
 
     // ========================================
     // COUNT QUERIES
@@ -188,7 +187,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return Number of users in tenant
      */
     @Query("SELECT COUNT(u) FROM User u WHERE u.tenant.id = :tenantId")
-    long countByTenantId(@Param("tenantId") UUID tenantId);
+    long countByTenantId(@Param("tenantId") Long tenantId);
 
     /**
      * Count users by tenant ID and role
@@ -198,7 +197,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return Number of users with the specified role
      */
     @Query("SELECT COUNT(u) FROM User u WHERE u.tenant.id = :tenantId AND u.role = :role")
-    long countByTenantIdAndRole(@Param("tenantId") UUID tenantId, @Param("role") User.UserRole role);
+    long countByTenantIdAndRole(@Param("tenantId") Long tenantId, @Param("role") User.UserRole role);
 
     /**
      * Count users by tenant ID and status
@@ -208,7 +207,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return Number of users with the specified status
      */
     @Query("SELECT COUNT(u) FROM User u WHERE u.tenant.id = :tenantId AND u.status = :status")
-    long countByTenantIdAndStatus(@Param("tenantId") UUID tenantId, @Param("status") User.UserStatus status);
+    long countByTenantIdAndStatus(@Param("tenantId") Long tenantId, @Param("status") User.UserStatus status);
 
     // ========================================
     // ACTIVITY QUERIES
@@ -222,7 +221,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return List of users
      */
     @Query("SELECT u FROM User u WHERE u.tenant.id = :tenantId AND u.lastLoginAt > :date")
-    List<User> findUsersLoggedInAfter(@Param("tenantId") UUID tenantId, @Param("date") LocalDateTime date);
+    List<User> findUsersLoggedInAfter(@Param("tenantId") Long tenantId, @Param("date") LocalDateTime date);
 
     /**
      * Find users who never logged in
@@ -231,7 +230,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return List of users
      */
     @Query("SELECT u FROM User u WHERE u.tenant.id = :tenantId AND u.lastLoginAt IS NULL")
-    List<User> findUsersNeverLoggedIn(@Param("tenantId") UUID tenantId);
+    List<User> findUsersNeverLoggedIn(@Param("tenantId") Long tenantId);
 
     // ========================================
     // VALIDATION QUERIES
@@ -246,7 +245,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END " +
            "FROM User u WHERE u.email = :email AND u.tenant.id = :tenantId")
-    boolean existsByEmailInTenant(@Param("email") String email, @Param("tenantId") UUID tenantId);
+    boolean existsByEmailInTenant(@Param("email") String email, @Param("tenantId") Long tenantId);
 
     /**
      * Check if email exists in tenant (excluding specific user)
@@ -261,7 +260,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "FROM User u WHERE u.email = :email AND u.tenant.id = :tenantId AND u.id != :excludeUserId")
     boolean existsByEmailInTenantExcludingUser(
         @Param("email") String email, 
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("excludeUserId") Long excludeUserId
     );
 }

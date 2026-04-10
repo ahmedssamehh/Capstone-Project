@@ -31,13 +31,12 @@ import java.util.UUID;
 public class Tenant {
 
     /**
-     * Primary Key - Using UUID for better security and distribution
-     * UUID prevents enumeration attacks and works well in distributed systems
+     * Primary Key - Using Long for simplicity and performance
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
-    private UUID id;
+    private Long id;
 
     /**
      * Tenant name - Organization or company name

@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Project Repository - Data access layer for Project entity
@@ -33,7 +32,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @return List of projects in the tenant
      */
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId")
-    List<Project> findAllByTenantId(@Param("tenantId") UUID tenantId);
+    List<Project> findByTenantId(@Param("tenantId") Long tenantId);
 
     /**
      * Find project by ID and tenant ID
@@ -45,7 +44,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @return Optional containing project if found in tenant
      */
     @Query("SELECT p FROM Project p WHERE p.id = :id AND p.tenant.id = :tenantId")
-    Optional<Project> findByIdAndTenantId(@Param("id") Long id, @Param("tenantId") UUID tenantId);
+    Optional<Project> findByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     /**
      * Check if project exists by ID and tenant ID
@@ -56,7 +55,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      */
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END " +
            "FROM Project p WHERE p.id = :id AND p.tenant.id = :tenantId")
-    boolean existsByIdAndTenantId(@Param("id") Long id, @Param("tenantId") UUID tenantId);
+    boolean existsByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     /**
      * Delete project by ID and tenant ID
@@ -67,7 +66,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @param tenantId Tenant ID
      */
     @Query("DELETE FROM Project p WHERE p.id = :id AND p.tenant.id = :tenantId")
-    void deleteByIdAndTenantId(@Param("id") Long id, @Param("tenantId") UUID tenantId);
+    void deleteByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     // ========================================
     // STATUS-BASED QUERIES (TENANT-FILTERED)
@@ -82,7 +81,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      */
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId AND p.status = :status")
     List<Project> findByTenantIdAndStatus(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("status") Project.ProjectStatus status
     );
 
@@ -92,7 +91,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @param tenantId Tenant ID
      * @return List of active projects
      */
-    default List<Project> findActiveProjectsByTenantId(UUID tenantId) {
+    default List<Project> findActiveProjectsByTenantId(Long tenantId) {
         return findByTenantIdAndStatus(tenantId, Project.ProjectStatus.ACTIVE);
     }
 
@@ -102,7 +101,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @param tenantId Tenant ID
      * @return List of completed projects
      */
-    default List<Project> findCompletedProjectsByTenantId(UUID tenantId) {
+    default List<Project> findCompletedProjectsByTenantId(Long tenantId) {
         return findByTenantIdAndStatus(tenantId, Project.ProjectStatus.COMPLETED);
     }
 
@@ -112,7 +111,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @param tenantId Tenant ID
      * @return List of archived projects
      */
-    default List<Project> findArchivedProjectsByTenantId(UUID tenantId) {
+    default List<Project> findArchivedProjectsByTenantId(Long tenantId) {
         return findByTenantIdAndStatus(tenantId, Project.ProjectStatus.ARCHIVED);
     }
 
@@ -129,7 +128,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      */
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId AND p.createdBy.id = :createdById")
     List<Project> findByTenantIdAndCreatedById(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("createdById") Long createdById
     );
 
@@ -144,7 +143,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId " +
            "AND p.createdBy.id = :createdById AND p.status = :status")
     List<Project> findByTenantIdAndCreatedByIdAndStatus(
-        @Param("tenantId") UUID tenantId,
+        @Param("tenantId") Long tenantId,
         @Param("createdById") Long createdById,
         @Param("status") Project.ProjectStatus status
     );
@@ -162,7 +161,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      */
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId " +
            "AND LOWER(p.name) LIKE LOWER(CONCAT('%', :name, '%'))")
-    List<Project> searchByNameInTenant(@Param("tenantId") UUID tenantId, @Param("name") String name);
+    List<Project> searchByNameInTenant(@Param("tenantId") Long tenantId, @Param("name") String name);
 
     /**
      * Find project by project key and tenant ID
@@ -173,7 +172,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      */
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId AND p.projectKey = :projectKey")
     Optional<Project> findByTenantIdAndProjectKey(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("projectKey") String projectKey
     );
 
@@ -187,7 +186,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId " +
            "AND LOWER(p.description) LIKE LOWER(CONCAT('%', :description, '%'))")
     List<Project> searchByDescriptionInTenant(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("description") String description
     );
 
@@ -203,7 +202,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @return List of projects
      */
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId AND p.createdAt > :date")
-    List<Project> findProjectsCreatedAfter(@Param("tenantId") UUID tenantId, @Param("date") LocalDateTime date);
+    List<Project> findProjectsCreatedAfter(@Param("tenantId") Long tenantId, @Param("date") LocalDateTime date);
 
     /**
      * Find projects with end date before specified date
@@ -214,7 +213,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      */
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId " +
            "AND p.endDate IS NOT NULL AND p.endDate < :date")
-    List<Project> findProjectsEndingBefore(@Param("tenantId") UUID tenantId, @Param("date") LocalDateTime date);
+    List<Project> findProjectsEndingBefore(@Param("tenantId") Long tenantId, @Param("date") LocalDateTime date);
 
     /**
      * Find projects with start date between dates
@@ -227,7 +226,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId " +
            "AND p.startDate BETWEEN :startDate AND :endDate")
     List<Project> findProjectsStartingBetween(
-        @Param("tenantId") UUID tenantId,
+        @Param("tenantId") Long tenantId,
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate
     );
@@ -243,7 +242,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @return Number of projects in tenant
      */
     @Query("SELECT COUNT(p) FROM Project p WHERE p.tenant.id = :tenantId")
-    long countByTenantId(@Param("tenantId") UUID tenantId);
+    long countByTenantId(@Param("tenantId") Long tenantId);
 
     /**
      * Count projects by tenant ID and status
@@ -254,7 +253,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      */
     @Query("SELECT COUNT(p) FROM Project p WHERE p.tenant.id = :tenantId AND p.status = :status")
     long countByTenantIdAndStatus(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("status") Project.ProjectStatus status
     );
 
@@ -266,7 +265,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @return Number of projects created by the user
      */
     @Query("SELECT COUNT(p) FROM Project p WHERE p.tenant.id = :tenantId AND p.createdBy.id = :createdById")
-    long countByTenantIdAndCreatedById(@Param("tenantId") UUID tenantId, @Param("createdById") Long createdById);
+    long countByTenantIdAndCreatedById(@Param("tenantId") Long tenantId, @Param("createdById") Long createdById);
 
     // ========================================
     // VALIDATION QUERIES (TENANT-FILTERED)
@@ -282,7 +281,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     @Query("SELECT CASE WHEN COUNT(p) > 0 THEN true ELSE false END " +
            "FROM Project p WHERE p.tenant.id = :tenantId AND p.projectKey = :projectKey")
     boolean existsByProjectKeyInTenant(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("projectKey") String projectKey
     );
 
@@ -299,7 +298,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
            "FROM Project p WHERE p.tenant.id = :tenantId " +
            "AND p.projectKey = :projectKey AND p.id != :excludeProjectId")
     boolean existsByProjectKeyInTenantExcludingProject(
-        @Param("tenantId") UUID tenantId,
+        @Param("tenantId") Long tenantId,
         @Param("projectKey") String projectKey,
         @Param("excludeProjectId") Long excludeProjectId
     );
@@ -319,7 +318,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
            "WHERE p.id = :id AND p.tenant.id = :tenantId")
     Optional<Project> findByIdAndTenantIdWithTasks(
         @Param("id") Long id, 
-        @Param("tenantId") UUID tenantId
+        @Param("tenantId") Long tenantId
     );
 
     /**
@@ -331,7 +330,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      */
     @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId AND SIZE(p.tasks) > :count")
     List<Project> findProjectsWithTaskCountGreaterThan(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("count") int count
     );
 }

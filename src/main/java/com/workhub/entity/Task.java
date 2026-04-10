@@ -9,7 +9,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * Task Entity - Represents a task in the multi-tenant system
@@ -194,7 +193,7 @@ public class Task {
      * Critical for multi-tenant queries
      */
     @Transient
-    public UUID getTenantId() {
+    public Long getTenantId() {
         return tenant != null ? tenant.getId() : null;
     }
 

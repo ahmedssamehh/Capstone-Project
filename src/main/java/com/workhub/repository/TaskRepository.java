@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Task Repository - Data access layer for Task entity
@@ -36,7 +35,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @return List of tasks in the tenant
      */
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId")
-    List<Task> findAllByTenantId(@Param("tenantId") UUID tenantId);
+    List<Task> findByTenantId(@Param("tenantId") Long tenantId);
 
     /**
      * Find task by ID and tenant ID
@@ -48,7 +47,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @return Optional containing task if found in tenant
      */
     @Query("SELECT t FROM Task t WHERE t.id = :id AND t.tenant.id = :tenantId")
-    Optional<Task> findByIdAndTenantId(@Param("id") Long id, @Param("tenantId") UUID tenantId);
+    Optional<Task> findByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     /**
      * Check if task exists by ID and tenant ID
@@ -59,7 +58,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END " +
            "FROM Task t WHERE t.id = :id AND t.tenant.id = :tenantId")
-    boolean existsByIdAndTenantId(@Param("id") Long id, @Param("tenantId") UUID tenantId);
+    boolean existsByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     /**
      * Delete task by ID and tenant ID
@@ -70,7 +69,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @param tenantId Tenant ID
      */
     @Query("DELETE FROM Task t WHERE t.id = :id AND t.tenant.id = :tenantId")
-    void deleteByIdAndTenantId(@Param("id") Long id, @Param("tenantId") UUID tenantId);
+    void deleteByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     // ========================================
     // PROJECT-BASED QUERIES (TENANT-FILTERED)
@@ -86,7 +85,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.project.id = :projectId AND t.tenant.id = :tenantId")
     List<Task> findByProjectIdAndTenantId(
         @Param("projectId") Long projectId, 
-        @Param("tenantId") UUID tenantId
+        @Param("tenantId") Long tenantId
     );
 
     /**
@@ -101,7 +100,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
            "AND t.tenant.id = :tenantId AND t.status = :status")
     List<Task> findByProjectIdAndTenantIdAndStatus(
         @Param("projectId") Long projectId,
-        @Param("tenantId") UUID tenantId,
+        @Param("tenantId") Long tenantId,
         @Param("status") Task.TaskStatus status
     );
 
@@ -117,7 +116,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
            "AND t.tenant.id = :tenantId AND t.priority = :priority")
     List<Task> findByProjectIdAndTenantIdAndPriority(
         @Param("projectId") Long projectId,
-        @Param("tenantId") UUID tenantId,
+        @Param("tenantId") Long tenantId,
         @Param("priority") Task.TaskPriority priority
     );
 
@@ -134,7 +133,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId AND t.status = :status")
     List<Task> findByTenantIdAndStatus(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("status") Task.TaskStatus status
     );
 
@@ -144,7 +143,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @param tenantId Tenant ID
      * @return List of TODO tasks
      */
-    default List<Task> findTodoTasksByTenantId(UUID tenantId) {
+    default List<Task> findTodoTasksByTenantId(Long tenantId) {
         return findByTenantIdAndStatus(tenantId, Task.TaskStatus.TODO);
     }
 
@@ -154,7 +153,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @param tenantId Tenant ID
      * @return List of in-progress tasks
      */
-    default List<Task> findInProgressTasksByTenantId(UUID tenantId) {
+    default List<Task> findInProgressTasksByTenantId(Long tenantId) {
         return findByTenantIdAndStatus(tenantId, Task.TaskStatus.IN_PROGRESS);
     }
 
@@ -164,7 +163,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @param tenantId Tenant ID
      * @return List of completed tasks
      */
-    default List<Task> findCompletedTasksByTenantId(UUID tenantId) {
+    default List<Task> findCompletedTasksByTenantId(Long tenantId) {
         return findByTenantIdAndStatus(tenantId, Task.TaskStatus.COMPLETED);
     }
 
@@ -181,7 +180,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId AND t.priority = :priority")
     List<Task> findByTenantIdAndPriority(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("priority") Task.TaskPriority priority
     );
 
@@ -191,7 +190,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @param tenantId Tenant ID
      * @return List of urgent tasks
      */
-    default List<Task> findUrgentTasksByTenantId(UUID tenantId) {
+    default List<Task> findUrgentTasksByTenantId(Long tenantId) {
         return findByTenantIdAndPriority(tenantId, Task.TaskPriority.URGENT);
     }
 
@@ -201,7 +200,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @param tenantId Tenant ID
      * @return List of high priority tasks
      */
-    default List<Task> findHighPriorityTasksByTenantId(UUID tenantId) {
+    default List<Task> findHighPriorityTasksByTenantId(Long tenantId) {
         return findByTenantIdAndPriority(tenantId, Task.TaskPriority.HIGH);
     }
 
@@ -219,7 +218,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.assignedTo.id = :assignedToId AND t.tenant.id = :tenantId")
     List<Task> findByAssignedToIdAndTenantId(
         @Param("assignedToId") Long assignedToId, 
-        @Param("tenantId") UUID tenantId
+        @Param("tenantId") Long tenantId
     );
 
     /**
@@ -234,7 +233,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
            "AND t.tenant.id = :tenantId AND t.status = :status")
     List<Task> findByAssignedToIdAndTenantIdAndStatus(
         @Param("assignedToId") Long assignedToId,
-        @Param("tenantId") UUID tenantId,
+        @Param("tenantId") Long tenantId,
         @Param("status") Task.TaskStatus status
     );
 
@@ -245,7 +244,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @return List of unassigned tasks
      */
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId AND t.assignedTo IS NULL")
-    List<Task> findUnassignedTasksByTenantId(@Param("tenantId") UUID tenantId);
+    List<Task> findUnassignedTasksByTenantId(@Param("tenantId") Long tenantId);
 
     // ========================================
     // DATE-BASED QUERIES (TENANT-FILTERED)
@@ -261,7 +260,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId " +
            "AND t.dueDate < :now AND t.status != 'COMPLETED'")
     List<Task> findOverdueTasksByTenantId(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("now") LocalDateTime now
     );
 
@@ -275,7 +274,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId " +
            "AND t.dueDate IS NOT NULL AND t.dueDate < :date")
     List<Task> findTasksDueBefore(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("date") LocalDateTime date
     );
 
@@ -290,7 +289,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId " +
            "AND t.dueDate BETWEEN :startDate AND :endDate")
     List<Task> findTasksDueBetween(
-        @Param("tenantId") UUID tenantId,
+        @Param("tenantId") Long tenantId,
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate
     );
@@ -305,7 +304,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId " +
            "AND t.completedAt IS NOT NULL AND t.completedAt > :date")
     List<Task> findTasksCompletedAfter(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("date") LocalDateTime date
     );
 
@@ -323,7 +322,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId " +
            "AND LOWER(t.title) LIKE LOWER(CONCAT('%', :title, '%'))")
     List<Task> searchByTitleInTenant(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("title") String title
     );
 
@@ -337,7 +336,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId " +
            "AND LOWER(t.description) LIKE LOWER(CONCAT('%', :description, '%'))")
     List<Task> searchByDescriptionInTenant(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("description") String description
     );
 
@@ -352,7 +351,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @return Number of tasks in tenant
      */
     @Query("SELECT COUNT(t) FROM Task t WHERE t.tenant.id = :tenantId")
-    long countByTenantId(@Param("tenantId") UUID tenantId);
+    long countByTenantId(@Param("tenantId") Long tenantId);
 
     /**
      * Count tasks by project ID and tenant ID
@@ -364,7 +363,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT COUNT(t) FROM Task t WHERE t.project.id = :projectId AND t.tenant.id = :tenantId")
     long countByProjectIdAndTenantId(
         @Param("projectId") Long projectId, 
-        @Param("tenantId") UUID tenantId
+        @Param("tenantId") Long tenantId
     );
 
     /**
@@ -376,7 +375,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     @Query("SELECT COUNT(t) FROM Task t WHERE t.tenant.id = :tenantId AND t.status = :status")
     long countByTenantIdAndStatus(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("status") Task.TaskStatus status
     );
 
@@ -390,7 +389,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT COUNT(t) FROM Task t WHERE t.assignedTo.id = :assignedToId AND t.tenant.id = :tenantId")
     long countByAssignedToIdAndTenantId(
         @Param("assignedToId") Long assignedToId, 
-        @Param("tenantId") UUID tenantId
+        @Param("tenantId") Long tenantId
     );
 
     /**
@@ -403,7 +402,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT COUNT(t) FROM Task t WHERE t.tenant.id = :tenantId " +
            "AND t.dueDate < :now AND t.status != 'COMPLETED'")
     long countOverdueTasksByTenantId(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("now") LocalDateTime now
     );
 
@@ -420,7 +419,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId AND t.status IN :statuses")
     List<Task> findByTenantIdAndStatusIn(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("statuses") List<Task.TaskStatus> statuses
     );
 
@@ -437,7 +436,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
            "AND t.tenant.id = :tenantId AND t.status = :status AND t.priority = :priority")
     List<Task> findByProjectIdAndTenantIdAndStatusAndPriority(
         @Param("projectId") Long projectId,
-        @Param("tenantId") UUID tenantId,
+        @Param("tenantId") Long tenantId,
         @Param("status") Task.TaskStatus status,
         @Param("priority") Task.TaskPriority priority
     );
@@ -452,7 +451,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId " +
            "AND t.estimatedHours IS NOT NULL AND t.estimatedHours > :hours")
     List<Task> findTasksWithEstimatedHoursGreaterThan(
-        @Param("tenantId") UUID tenantId, 
+        @Param("tenantId") Long tenantId, 
         @Param("hours") int hours
     );
 
@@ -465,5 +464,5 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     @Query("SELECT t FROM Task t WHERE t.tenant.id = :tenantId " +
            "AND t.estimatedHours IS NOT NULL AND t.actualHours IS NOT NULL " +
            "AND t.actualHours > t.estimatedHours")
-    List<Task> findTasksOverBudget(@Param("tenantId") UUID tenantId);
+    List<Task> findTasksOverBudget(@Param("tenantId") Long tenantId);
 }

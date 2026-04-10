@@ -17,7 +17,7 @@ import java.util.UUID;
  * This is the root repository for multi-tenant operations.
  */
 @Repository
-public interface TenantRepository extends JpaRepository<Tenant, UUID> {
+public interface TenantRepository extends JpaRepository<Tenant, Long> {
 
     /**
      * Find tenant by name
@@ -141,5 +141,5 @@ public interface TenantRepository extends JpaRepository<Tenant, UUID> {
            "LEFT JOIN FETCH t.users " +
            "LEFT JOIN FETCH t.projects " +
            "WHERE t.id = :tenantId")
-    Optional<Tenant> findByIdWithStatistics(@Param("tenantId") UUID tenantId);
+    Optional<Tenant> findByIdWithStatistics(@Param("tenantId") Long tenantId);
 }

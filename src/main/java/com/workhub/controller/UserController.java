@@ -13,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/users")
@@ -42,22 +41,19 @@ public class UserController {
 
     @GetMapping
     public ResponseEntity<List<UserDto>> getAllUsers() {
-        UUID tenantId = TenantContext.getCurrentTenantId();
-        List<UserDto> users = userService.getAllUsersByTenant(tenantId);
+        List<UserDto> users = userService.getAllUsersByTenant();
         return ResponseEntity.ok(users);
     }
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<UserDto>> getUsersByStatus(@PathVariable User.UserStatus status) {
-        UUID tenantId = TenantContext.getCurrentTenantId();
-        List<UserDto> users = userService.getUsersByTenantAndStatus(tenantId, status);
+        List<UserDto> users = userService.getUsersByTenantAndStatus(status);
         return ResponseEntity.ok(users);
     }
 
     @GetMapping("/role/{role}")
     public ResponseEntity<List<UserDto>> getUsersByRole(@PathVariable User.UserRole role) {
-        UUID tenantId = TenantContext.getCurrentTenantId();
-        List<UserDto> users = userService.getUsersByTenantAndRole(tenantId, role);
+        List<UserDto> users = userService.getUsersByTenantAndRole(role);
         return ResponseEntity.ok(users);
     }
 
@@ -77,8 +73,7 @@ public class UserController {
 
     @GetMapping("/count")
     public ResponseEntity<Long> countUsers() {
-        UUID tenantId = TenantContext.getCurrentTenantId();
-        long count = userService.countUsersByTenant(tenantId);
+        long count = userService.countUsersByTenant();
         return ResponseEntity.ok(count);
     }
 }

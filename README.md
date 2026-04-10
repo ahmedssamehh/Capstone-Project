@@ -2,285 +2,767 @@
 
 A comprehensive Spring Boot backend application for a multi-tenant SaaS platform with project and task management capabilities.
 
-## Architecture
+## 🚀 Quick Start
 
-This project follows **Clean Architecture** principles with clear separation of concerns:
+### Prerequisites
+- **Java 17** or higher
+- **PostgreSQL 12** or higher
+- **Maven 3.6** or higher
+
+### 1. Database Setup
+
+```bash
+# Create database
+createdb workhub
+
+# Or using psql
+psql -U postgres
+CREATE DATABASE workhub;
+```
+
+### 2. Configure Database
+
+Update `src/main/resources/application.yml`:
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/workhub
+    username: postgres
+    password: postgres
+```
+
+### 3. Run Application
+
+```bash
+# Build and run
+mvn clean spring-boot:run
+```
+
+The application will start on **http://localhost:8080**
+
+### 4. Test Data
+
+The application automatically creates test data on startup:
+
+**Admin User**:
+- Email: `admin@demo.com`
+- Password: `admin123`
+- Role: TENANT_ADMIN
+
+**Regular User**:
+- Email: `user@demo.com`
+- Password: `user123`
+- Role: TENANT_USER
+
+## 📋 API Endpoints
+
+### Authentication
+
+#### Login
+```bash
+POST /api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@demo.com",
+  "password": "admin123"
+}
+```
+
+**Response**:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "type": "Bearer",
+  "userId": 1,
+  "email": "admin@demo.com",
+  "tenantId": 1,
+  "role": "TENANT_ADMIN",
+  "expiresIn": 86400000
+}
+```
+
+#### Get Current User
+```bash
+GET /api/auth/me
+Authorization: Bearer <token>
+```
+
+### Projects
+
+#### Create Project
+```bash
+POST /api/projects
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "Project Alpha",
+  "description": "A new project",
+  "projectKey": "ALPHA"
+}
+```
+
+#### Get All Projects
+```bash
+GET /api/projects
+Authorization: Bearer <token>
+```
+
+#### Get Project by ID
+```bash
+GET /api/projects/{id}
+Authorization: Bearer <token>
+```
+
+### Tasks
+
+#### Create Task for Project
+```bash
+POST /api/projects/{id}/tasks
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "title": "Implement feature",
+  "description": "Feature description",
+  "priority": "HIGH",
+  "estimatedHours": 8
+}
+```
+
+#### Update Task
+```bash
+PATCH /api/tasks/{id}
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "status": "IN_PROGRESS",
+  "actualHours": 4
+}
+```
+
+## 🧪 Sample Login & Usage
+
+### Complete Workflow Example
+
+```bash
+# 1. Login
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@demo.com","password":"admin123"}' \
+  | jq -r '.token')
+
+echo "Token: $TOKEN"
+
+# 2. Get current user
+curl -X GET http://localhost:8080/api/auth/me \
+  -H "Authorization: Bearer $TOKEN"
+
+# 3. Create a project
+PROJECT_ID=$(curl -s -X POST http://localhost:8080/api/projects \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My First Project",
+    "description": "Testing the API",
+    "projectKey": "TEST"
+  }' | jq -r '.id')
+
+echo "Created Project ID: $PROJECT_ID"
+
+# 4. Get all projects
+curl -X GET http://localhost:8080/api/projects \
+  -H "Authorization: Bearer $TOKEN"
+
+# 5. Get project by ID
+curl -X GET http://localhost:8080/api/projects/$PROJECT_ID \
+  -H "Authorization: Bearer $TOKEN"
+
+# 6. Create a task
+TASK_ID=$(curl -s -X POST http://localhost:8080/api/projects/$PROJECT_ID/tasks \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Implement authentication",
+    "description": "Add JWT authentication",
+    "priority": "HIGH",
+    "estimatedHours": 16
+  }' | jq -r '.id')
+
+echo "Created Task ID: $TASK_ID"
+
+# 7. Update task status
+curl -X PATCH http://localhost:8080/api/tasks/$TASK_ID \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "IN_PROGRESS",
+    "actualHours": 8
+  }'
+
+# 8. Get task
+curl -X GET http://localhost:8080/api/tasks/$TASK_ID \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+## 📚 API Documentation
+
+### Authentication Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/auth/login` | Login and get JWT token | No |
+| GET | `/api/auth/me` | Get current user profile | Yes |
+
+### Project Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| POST | `/api/projects` | Create project | Yes |
+| GET | `/api/projects` | Get all projects | Yes |
+| GET | `/api/projects/{id}` | Get project by ID | Yes |
+| POST | `/api/projects/{id}/tasks` | Create task for project | Yes |
+
+### Task Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|---------------|
+| GET | `/api/tasks/{id}` | Get task by ID | Yes |
+| PATCH | `/api/tasks/{id}` | Update task (partial) | Yes |
+| DELETE | `/api/tasks/{id}` | Delete task | Yes |
+
+### Test Endpoints (Development Only)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/test/transaction/rollback` | Test transaction rollback |
+| GET | `/api/test/transaction/verify` | Verify rollback |
+| GET | `/api/test/transaction/instructions` | Get test instructions |
+
+## 🔐 Sample Login
+
+### Using curl
+
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@demo.com",
+    "password": "admin123"
+  }'
+```
+
+### Using Postman
+
+1. **Method**: POST
+2. **URL**: `http://localhost:8080/api/auth/login`
+3. **Headers**: `Content-Type: application/json`
+4. **Body** (raw JSON):
+```json
+{
+  "email": "admin@demo.com",
+  "password": "admin123"
+}
+```
+
+### Response
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsInRlbmFudElkIjoxLCJyb2xlIjoiVEVOQU5UX0FETUlOIiwic3ViIjoiYWRtaW5AZGVtby5jb20iLCJpYXQiOjE3MDUzMjAwMDAsImV4cCI6MTcwNTQwNjQwMH0.xxx",
+  "type": "Bearer",
+  "userId": 1,
+  "email": "admin@demo.com",
+  "tenantId": 1,
+  "role": "TENANT_ADMIN",
+  "expiresIn": 86400000
+}
+```
+
+### Using the Token
+
+Add the token to all subsequent requests:
+
+```bash
+curl -X GET http://localhost:8080/api/projects \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+## 🏃 How to Run
+
+### Option 1: Maven (Development)
+
+```bash
+# Clean and run
+mvn clean spring-boot:run
+
+# Run with dev profile
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+
+# Run with specific port
+mvn spring-boot:run -Dspring-boot.run.arguments=--server.port=9090
+```
+
+### Option 2: JAR File (Production)
+
+```bash
+# Build JAR
+mvn clean package
+
+# Run JAR
+java -jar target/workhub-0.0.1-SNAPSHOT.jar
+
+# Run with profile
+java -jar target/workhub-0.0.1-SNAPSHOT.jar --spring.profiles.active=prod
+```
+
+### Option 3: Docker (Optional)
+
+```bash
+# Build image
+docker build -t workhub:latest .
+
+# Run container
+docker run -p 8080:8080 \
+  -e DATABASE_URL=jdbc:postgresql://host.docker.internal:5432/workhub \
+  -e DATABASE_USERNAME=postgres \
+  -e DATABASE_PASSWORD=postgres \
+  workhub:latest
+```
+
+### Option 4: Docker Compose
+
+```bash
+# Start all services (app + database)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+## 🔧 Configuration
+
+### Application Properties
+
+**File**: `src/main/resources/application.yml`
+
+```yaml
+spring:
+  application:
+    name: workhub
+  
+  datasource:
+    url: jdbc:postgresql://localhost:5432/workhub
+    username: postgres
+    password: postgres
+  
+  jpa:
+    hibernate:
+      ddl-auto: update  # Creates/updates tables automatically
+    show-sql: true      # Shows SQL in logs
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET:your-secret-key}
+  expiration: 86400000  # 24 hours
+```
+
+### Environment Variables
+
+```bash
+# Database
+export DATABASE_URL=jdbc:postgresql://localhost:5432/workhub
+export DATABASE_USERNAME=postgres
+export DATABASE_PASSWORD=postgres
+
+# JWT
+export JWT_SECRET=your-secret-key-here
+
+# Run
+mvn spring-boot:run
+```
+
+## 🏗️ Architecture
+
+### Clean Architecture Layers
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Controller Layer                      │
+│  - REST endpoints                                        │
+│  - Request/Response handling                             │
+│  - Input validation (@Valid)                             │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                     Service Layer                        │
+│  - Business logic                                        │
+│  - Transaction management (@Transactional)               │
+│  - Tenant isolation (TenantContext)                      │
+└────────────────────┬────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│                   Repository Layer                       │
+│  - Data access (Spring Data JPA)                         │
+│  - Tenant-filtered queries                               │
+│  - Database operations                                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+### Multi-Tenant Security
+
+```
+Request with JWT
+    ↓
+TenantContextFilter extracts tenantId from JWT
+    ↓
+TenantContext.setTenantId(tenantId)
+    ↓
+Service uses TenantContext.getTenantId()
+    ↓
+Repository filters by tenantId
+    ↓
+Only tenant's data returned
+```
+
+## 🧪 Testing
+
+### Manual Testing
+
+1. **Start application**: `mvn spring-boot:run`
+2. **Login**: Get JWT token
+3. **Test endpoints**: Use curl or Postman
+4. **Verify**: Check database
+
+### Transaction Rollback Test
+
+```bash
+# Test transaction rollback
+curl -X POST http://localhost:8080/api/test/transaction/rollback \
+  -H "Authorization: Bearer $TOKEN"
+
+# Expected: 500 error (intentional)
+
+# Verify nothing saved
+curl -X GET "http://localhost:8080/api/test/transaction/verify?projectId=X&taskId=Y" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Expected: rollbackSuccessful: true
+```
+
+## 📖 Technology Stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Java | 17 | Programming language |
+| Spring Boot | 3.3.5 | Application framework |
+| Spring Data JPA | 3.3.5 | Data access |
+| Spring Security | 3.3.5 | Authentication & authorization |
+| PostgreSQL | 12+ | Database |
+| Lombok | Latest | Code generation |
+| JWT (jjwt) | 0.11.5 | Token authentication |
+| Maven | 3.6+ | Build tool |
+
+## 🔒 Security Features
+
+### JWT Authentication
+- Token-based authentication
+- Includes `tenantId` and `role` in claims
+- Automatic tenant context setup
+- 24-hour token expiration
+
+### Tenant Isolation
+- All operations automatically filtered by tenant
+- No cross-tenant access possible
+- ThreadLocal-based tenant context
+- Automatic cleanup after request
+
+### Password Security
+- BCrypt password hashing
+- No plain text passwords stored
+- Secure password validation
+
+## 📝 Sample Requests
+
+### 1. Login
+
+```bash
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@demo.com",
+    "password": "admin123"
+  }'
+```
+
+### 2. Create Project
+
+```bash
+curl -X POST http://localhost:8080/api/projects \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Project",
+    "description": "Project description",
+    "projectKey": "PROJ"
+  }'
+```
+
+### 3. Get Projects
+
+```bash
+curl -X GET http://localhost:8080/api/projects \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 4. Create Task
+
+```bash
+curl -X POST http://localhost:8080/api/projects/1/tasks \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Implement feature",
+    "description": "Feature description",
+    "priority": "HIGH",
+    "estimatedHours": 8
+  }'
+```
+
+### 5. Update Task
+
+```bash
+curl -X PATCH http://localhost:8080/api/tasks/1 \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "IN_PROGRESS",
+    "actualHours": 4
+  }'
+```
+
+## 🎯 Features
+
+### Multi-Tenancy
+- ✅ Complete tenant isolation
+- ✅ Automatic tenant context from JWT
+- ✅ No cross-tenant data access
+- ✅ ThreadLocal-based context management
+
+### Entities
+- ✅ **Tenant**: Organization/company
+- ✅ **User**: Users with roles (TENANT_ADMIN, TENANT_USER)
+- ✅ **Project**: Projects with status tracking
+- ✅ **Task**: Tasks with priority, status, and assignments
+
+### Security
+- ✅ JWT authentication
+- ✅ BCrypt password hashing
+- ✅ Role-based access control
+- ✅ Tenant-aware security filter
+
+### Data Management
+- ✅ Spring Data JPA repositories
+- ✅ Tenant-filtered queries
+- ✅ Transaction management
+- ✅ Optimistic locking (@Version)
+
+### API Features
+- ✅ RESTful endpoints
+- ✅ DTO pattern (not exposing entities)
+- ✅ Input validation (@Valid)
+- ✅ Consistent error responses
+- ✅ Global exception handling
+
+## 📂 Project Structure
 
 ```
 src/main/java/com/workhub/
-├── entity/              # Domain entities (JPA entities)
+├── entity/              # JPA entities
 │   ├── Tenant.java
 │   ├── User.java
 │   ├── Project.java
 │   └── Task.java
 ├── dto/                 # Data Transfer Objects
-│   ├── TenantResponse.java
-│   ├── CreateTenantRequest.java
-│   ├── UpdateTenantRequest.java
-│   ├── UserDto.java
-│   ├── CreateUserRequest.java
-│   ├── UpdateUserRequest.java
-│   ├── ProjectDto.java
+│   ├── LoginRequest.java
+│   ├── LoginResponse.java
 │   ├── CreateProjectRequest.java
-│   ├── UpdateProjectRequest.java
-│   ├── TaskDto.java
+│   ├── ProjectResponse.java
 │   ├── CreateTaskRequest.java
+│   ├── TaskResponse.java
 │   └── UpdateTaskRequest.java
-├── repository/          # Data access layer (Spring Data JPA)
+├── repository/          # Spring Data JPA repositories
 │   ├── TenantRepository.java
 │   ├── UserRepository.java
 │   ├── ProjectRepository.java
 │   └── TaskRepository.java
-├── service/             # Business logic layer
-│   ├── TenantService.java
-│   ├── TenantServiceImpl.java
-│   ├── UserService.java
-│   ├── UserServiceImpl.java
+├── service/             # Business logic
 │   ├── ProjectService.java
-│   ├── ProjectServiceImpl.java
-│   ├── TaskService.java
-│   └── TaskServiceImpl.java
-├── controller/          # REST API endpoints
-│   ├── HealthController.java
-│   ├── TenantController.java
-│   ├── UserController.java
+│   └── TaskService.java
+├── controller/          # REST controllers
+│   ├── AuthController.java
 │   ├── ProjectController.java
 │   └── TaskController.java
-├── security/            # Security & authentication
+├── security/            # Security components
 │   ├── SecurityConfig.java
-│   ├── TenantContext.java
-│   ├── TenantContextFilter.java
+│   ├── JwtUtil.java
 │   ├── JwtAuthenticationFilter.java
-│   └── JwtService.java
-├── config/              # Application configuration
-│   ├── ApplicationConfig.java
-│   ├── JpaConfig.java
-│   └── PasswordEncoderConfig.java
+│   ├── CustomUserDetails.java
+│   ├── CustomUserDetailsService.java
+│   ├── TenantContext.java
+│   └── TenantContextFilter.java
 ├── exception/           # Exception handling
-│   ├── GlobalExceptionHandler.java
-│   ├── ErrorResponse.java
-│   └── ValidationErrorResponse.java
+│   └── GlobalExceptionHandler.java
+├── config/              # Configuration
+│   └── DataInitializer.java
 └── WorkHubApplication.java
 ```
 
-## Features
+## 🛠️ Development
 
-### Multi-Tenancy
-- **Tenant Isolation**: Each tenant's data is completely isolated
-- **Tenant Context**: Automatic tenant identification via headers
-- **Tenant Validation**: All operations validate tenant access
+### Build
 
-### Entities
-
-#### Tenant
-- Unique identifier (UUID)
-- Name and slug
-- Status (ACTIVE, SUSPENDED, TRIAL, EXPIRED)
-- Resource limits (max users, max projects)
-- Timestamps
-
-#### User
-- Belongs to a tenant
-- Role-based access (TENANT_ADMIN, PROJECT_MANAGER, TEAM_MEMBER, VIEWER)
-- Status management (ACTIVE, INACTIVE, SUSPENDED)
-- Password encryption
-- Last login tracking
-
-#### Project
-- Belongs to a tenant
-- Unique project key
-- Status tracking (ACTIVE, ON_HOLD, COMPLETED, ARCHIVED)
-- Owner assignment
-- Start and end dates
-- Task relationships
-
-#### Task
-- Belongs to a project
-- Status tracking (TODO, IN_PROGRESS, IN_REVIEW, COMPLETED, BLOCKED)
-- Priority levels (LOW, MEDIUM, HIGH, URGENT)
-- Assignment to users
-- Time tracking (estimated vs actual hours)
-- Due dates
-- Completion tracking
-
-## Technology Stack
-
-- **Java**: 17
-- **Spring Boot**: 3.3.5
-- **Spring Data JPA**: Database operations
-- **Spring Security**: Authentication & authorization
-- **PostgreSQL**: Primary database
-- **Lombok**: Reduce boilerplate code
-- **JWT**: Token-based authentication
-- **Maven**: Build tool
-
-## API Endpoints
-
-### Tenant Management
-- `POST /api/tenants` - Create tenant
-- `GET /api/tenants/{id}` - Get tenant by ID
-- `GET /api/tenants/slug/{slug}` - Get tenant by slug
-- `PUT /api/tenants/{id}` - Update tenant
-- `DELETE /api/tenants/{id}` - Delete tenant
-
-### User Management
-- `POST /api/users` - Create user
-- `GET /api/users/{id}` - Get user by ID
-- `GET /api/users/email/{email}` - Get user by email
-- `GET /api/users` - Get all users (tenant-scoped)
-- `GET /api/users/status/{status}` - Get users by status
-- `GET /api/users/role/{role}` - Get users by role
-- `PUT /api/users/{id}` - Update user
-- `DELETE /api/users/{id}` - Delete user
-- `GET /api/users/count` - Count users
-
-### Project Management
-- `POST /api/projects` - Create project
-- `GET /api/projects/{id}` - Get project by ID
-- `GET /api/projects/key/{projectKey}` - Get project by key
-- `GET /api/projects` - Get all projects (tenant-scoped)
-- `GET /api/projects/status/{status}` - Get projects by status
-- `GET /api/projects/owner/{ownerId}` - Get projects by owner
-- `PUT /api/projects/{id}` - Update project
-- `DELETE /api/projects/{id}` - Delete project
-- `GET /api/projects/count` - Count projects
-
-### Task Management
-- `POST /api/tasks` - Create task
-- `GET /api/tasks/{id}` - Get task by ID
-- `GET /api/tasks` - Get all tasks (tenant-scoped)
-- `GET /api/tasks/project/{projectId}` - Get tasks by project
-- `GET /api/tasks/assignee/{userId}` - Get tasks by assignee
-- `GET /api/tasks/project/{projectId}/status/{status}` - Get tasks by project and status
-- `GET /api/tasks/assignee/{userId}/status/{status}` - Get tasks by assignee and status
-- `GET /api/tasks/overdue` - Get overdue tasks
-- `PUT /api/tasks/{id}` - Update task
-- `DELETE /api/tasks/{id}` - Delete task
-- `GET /api/tasks/project/{projectId}/count` - Count tasks by project
-
-## Getting Started
-
-### Prerequisites
-- Java 17 or higher
-- PostgreSQL 12 or higher
-- Maven 3.6 or higher
-
-### Database Setup
-
-1. Create a PostgreSQL database:
-```sql
-CREATE DATABASE workhub;
-```
-
-2. Update database credentials in `src/main/resources/application.yml`:
-```yaml
-spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/workhub
-    username: your_username
-    password: your_password
-```
-
-### Running the Application
-
-1. Clone the repository
-2. Navigate to the project directory
-3. Build the project:
 ```bash
+# Clean build
 mvn clean install
-```
 
-4. Run the application:
-```bash
-mvn spring-boot:run
-```
+# Skip tests
+mvn clean install -DskipTests
 
-Or run with a specific profile:
-```bash
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
-```
-
-The application will start on `http://localhost:8080`
-
-### Running Tests
-```bash
+# Run tests only
 mvn test
 ```
 
-## Configuration
+### Run
 
-### Application Profiles
+```bash
+# Development mode (with auto-reload)
+mvn spring-boot:run
 
-- **default**: Base configuration
-- **dev**: Development environment (auto-creates schema)
-- **prod**: Production environment (validates schema only)
+# With debug
+mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005"
+```
 
-### Environment Variables
+### Database
 
-For production deployment, set these environment variables:
+```bash
+# Connect to database
+psql -U postgres -d workhub
 
-- `DATABASE_URL`: PostgreSQL connection URL
-- `DATABASE_USERNAME`: Database username
-- `DATABASE_PASSWORD`: Database password
-- `JWT_SECRET`: Secret key for JWT token generation
+# View tables
+\dt
 
-## Security
+# View projects
+SELECT * FROM projects;
 
-### Multi-Tenant Security
-- Tenant context is established via `X-Tenant-ID` header
-- All API calls are scoped to the tenant context
-- Cross-tenant data access is prevented
+# View tasks
+SELECT * FROM tasks;
 
-### Authentication
-- JWT-based authentication
-- Password encryption using BCrypt
-- Token expiration: 24 hours (configurable)
+# View users
+SELECT * FROM users;
+```
 
-### Authorization
-- Role-based access control
-- Four user roles: TENANT_ADMIN, PROJECT_MANAGER, TEAM_MEMBER, VIEWER
+## 🐛 Troubleshooting
 
-## Database Schema
+### Application won't start
 
-The application uses JPA/Hibernate to automatically manage the database schema. Key features:
+**Check**:
+- PostgreSQL is running
+- Database `workhub` exists
+- Database credentials are correct in `application.yml`
 
-- **Indexes**: Optimized queries on frequently accessed columns
-- **Relationships**: Proper foreign key constraints
-- **Cascading**: Automatic cleanup of related entities
-- **Timestamps**: Automatic creation and update timestamps
+### 401 Unauthorized
 
-## Best Practices Implemented
+**Solution**:
+- Login to get a valid JWT token
+- Include token in Authorization header: `Bearer <token>`
 
-1. **Clean Architecture**: Clear separation between layers
-2. **DTO Pattern**: Separate request/response objects from entities
-3. **Service Layer**: Business logic isolated from controllers
-4. **Repository Pattern**: Data access abstraction
-5. **Exception Handling**: Global exception handler with proper error responses
-6. **Validation**: Input validation using Bean Validation
-7. **Lombok**: Reduced boilerplate code
-8. **Transaction Management**: Proper transaction boundaries
-9. **Logging**: Structured logging with SLF4J
-10. **Configuration Management**: Profile-based configuration
+### 404 Not Found
 
-## Future Enhancements
+**Solution**:
+- Verify resource exists
+- Check that resource belongs to your tenant
+- Verify resource ID is correct
 
-- [ ] Add authentication endpoints (login, register, refresh token)
-- [ ] Implement role-based authorization on endpoints
-- [ ] Add pagination and sorting for list endpoints
-- [ ] Implement search and filtering capabilities
-- [ ] Add audit logging for sensitive operations
-- [ ] Implement rate limiting
-- [ ] Add API documentation with Swagger/OpenAPI
-- [ ] Add integration tests
-- [ ] Implement caching with Redis
-- [ ] Add email notifications
-- [ ] Implement file upload for attachments
-- [ ] Add webhooks for external integrations
+### Validation errors
 
-## License
+**Solution**:
+- Check request body format
+- Ensure all required fields are present
+- Verify field constraints (min/max length, etc.)
+
+## 📊 Database Schema
+
+### Tables
+
+- `tenants` - Organizations/companies
+- `users` - Users belonging to tenants
+- `projects` - Projects belonging to tenants
+- `tasks` - Tasks belonging to projects
+
+### Key Relationships
+
+```
+Tenant (1) ─── (N) User
+Tenant (1) ─── (N) Project
+Project (1) ─── (N) Task
+User (1) ─── (N) Project (as creator)
+User (1) ─── (N) Task (as assignee)
+```
+
+### Indexes
+
+All tables have indexes on:
+- `tenant_id` - For efficient tenant filtering
+- Foreign keys - For join performance
+- Status fields - For filtering queries
+
+## 🎓 Best Practices Implemented
+
+1. ✅ **Clean Architecture** - Layered design
+2. ✅ **DTO Pattern** - Separate API contracts from entities
+3. ✅ **Validation** - Input validation with `@Valid`
+4. ✅ **Transaction Management** - `@Transactional` for consistency
+5. ✅ **Exception Handling** - Global exception handler
+6. ✅ **Security** - JWT authentication with tenant isolation
+7. ✅ **Logging** - Structured logging with SLF4J
+8. ✅ **Separation of Concerns** - Clear layer boundaries
+
+## 📄 License
 
 This project is licensed under the MIT License.
 
-## Contact
+## 👥 Test Accounts
 
-For questions or support, please contact the development team.
+| Email | Password | Role | Tenant |
+|-------|----------|------|--------|
+| admin@demo.com | admin123 | TENANT_ADMIN | Demo Company |
+| user@demo.com | user123 | TENANT_USER | Demo Company |
+
+## 🚀 Next Steps
+
+After starting the application:
+
+1. ✅ Login with test account
+2. ✅ Create a project
+3. ✅ Create tasks for the project
+4. ✅ Update task status
+5. ✅ Test transaction rollback
+
+## 📞 Support
+
+For issues or questions, check the documentation files:
+- `TRANSACTION_ROLLBACK_TEST.md` - Transaction testing guide
+- `SERVICE_LAYER_DOCUMENTATION.md` - Service layer details
+- `TENANT_CONTEXT_USAGE.md` - Tenant context usage
+- `REST_API_DOCUMENTATION.md` - Complete API reference

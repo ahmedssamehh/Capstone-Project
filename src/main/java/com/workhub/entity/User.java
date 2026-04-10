@@ -11,7 +11,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  * User Entity - Represents a user in the multi-tenant system
@@ -181,7 +180,7 @@ public class User {
      * Useful for queries and validation
      */
     @Transient
-    public UUID getTenantId() {
+    public Long getTenantId() {
         return tenant != null ? tenant.getId() : null;
     }
 

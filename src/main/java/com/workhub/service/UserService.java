@@ -6,7 +6,6 @@ import com.workhub.dto.UserDto;
 import com.workhub.entity.User;
 
 import java.util.List;
-import java.util.UUID;
 
 public interface UserService {
     
@@ -16,11 +15,11 @@ public interface UserService {
     
     UserDto getUserByEmail(String email);
     
-    List<UserDto> getAllUsersByTenant(UUID tenantId);
+    List<UserDto> getAllUsersByTenant();
     
-    List<UserDto> getUsersByTenantAndStatus(UUID tenantId, User.UserStatus status);
+    List<UserDto> getUsersByTenantAndStatus(User.UserStatus status);
     
-    List<UserDto> getUsersByTenantAndRole(UUID tenantId, User.UserRole role);
+    List<UserDto> getUsersByTenantAndRole(User.UserRole role);
     
     UserDto updateUser(Long id, UpdateUserRequest request);
     
@@ -28,5 +27,7 @@ public interface UserService {
     
     boolean existsByEmail(String email);
     
-    long countUsersByTenant(UUID tenantId);
+    long countUsersByTenant();
+    
+    void updateLastLogin(Long userId);
 }

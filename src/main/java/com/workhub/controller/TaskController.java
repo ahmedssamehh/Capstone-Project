@@ -1,105 +1,128 @@
 package com.workhub.controller;
 
-import com.workhub.dto.CreateTaskRequest;
-import com.workhub.dto.TaskDto;
+import com.workhub.dto.TaskResponse;
 import com.workhub.dto.UpdateTaskRequest;
 import com.workhub.entity.Task;
-import com.workhub.security.TenantContext;
+import com.workhub.entity.User;
 import com.workhub.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.UUID;
-
+/**
+ * REST Controller for Task operations
+ * 
+ * All operations are automatically tenant-scoped via TenantContext
+ */
 @RestController
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
+@Slf4j
 public class TaskController {
 
     private final TaskService taskService;
 
-    @PostMapping
-    public ResponseEntity<TaskDto> createTask(@Valid @RequestBody CreateTaskRequest request) {
-        TaskDto task = taskService.createTask(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(task);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<TaskDto> getTaskById(@PathVariable Long id) {
-        TaskDto task = taskService.getTaskById(id);
-        return ResponseEntity.ok(task);
-    }
-
-    @GetMapping
-    public ResponseEntity<List<TaskDto>> getAllTasks() {
-        UUID tenantId = TenantContext.getCurrentTenantId();
-        List<TaskDto> tasks = taskService.getAllTasksByTenant(tenantId);
-        return ResponseEntity.ok(tasks);
-    }
-
-    @GetMapping("/project/{projectId}")
-    public ResponseEntity<List<TaskDto>> getTasksByProject(@PathVariable Long projectId) {
-        List<TaskDto> tasks = taskService.getAllTasksByProject(projectId);
-        return ResponseEntity.ok(tasks);
-    }
-
-    @GetMapping("/assignee/{userId}")
-    public ResponseEntity<List<TaskDto>> getTasksByAssignee(@PathVariable Long userId) {
-        List<TaskDto> tasks = taskService.getTasksByAssignee(userId);
-        return ResponseEntity.ok(tasks);
-    }
-
-    @GetMapping("/project/{projectId}/status/{status}")
-    public ResponseEntity<List<TaskDto>> getTasksByProjectAndStatus(
-            @PathVariable Long projectId,
-            @PathVariable Task.TaskStatus status) {
-        List<TaskDto> tasks = taskService.getTasksByProjectAndStatus(projectId, status);
-        return ResponseEntity.ok(tasks);
-    }
-
-    @GetMapping("/assignee/{userId}/status/{status}")
-    public ResponseEntity<List<TaskDto>> getTasksByAssigneeAndStatus(
-            @PathVariable Long userId,
-            @PathVariable Task.TaskStatus status) {
-        List<TaskDto> tasks = taskService.getTasksByAssigneeAndStatus(userId, status);
-        return ResponseEntity.ok(tasks);
-    }
-
-    @GetMapping("/overdue")
-    public ResponseEntity<List<TaskDto>> getOverdueTasks() {
-        List<TaskDto> tasks = taskService.getOverdueTasks();
-        return ResponseEntity.ok(tasks);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<TaskDto> updateTask(
+    /**
+     * Update a task (partial update)
+     * 
+     * PATCH /api/tasks/{id}
+     * 
+     * @param id Task ID
+     * @param request Task update request (validated, all fields optional)
+     * @return Updated task
+     */
+    @PatchMapping("/{id}")
+    public ResponseEntity<TaskResponse> updateTask(
             @PathVariable Long id,
             @Valid @RequestBody UpdateTaskRequest request) {
-        TaskDto task = taskService.updateTask(id, request);
-        return ResponseEntity.ok(task);
+        
+        log.info("Updating task: {}", id);
+
+        // Get existing task (validates tenant ownership)
+        Task existingTask = taskService.getTaskByIdOrThrow(id);
+
+        // Apply updates (only non-null fields)
+        if (request.getTitle() != null) {
+            existingTask.setTitle(request.getTitle());
+        }
+
+        if (request.getDescription() != null) {
+            existingTask.setDescription(request.getDescription());
+        }
+
+        if (request.getStatus() != null) {
+            existingTask.setStatus(request.getStatus());
+        }
+
+        if (request.getPriority() != null) {
+            existingTask.setPriority(request.getPriority());
+        }
+
+        if (request.getDueDate() != null) {
+            existingTask.setDueDate(request.getDueDate());
+        }
+
+        if (request.getEstimatedHours() != null) {
+            existingTask.setEstimatedHours(request.getEstimatedHours());
+        }
+
+        if (request.getActualHours() != null) {
+            existingTask.setActualHours(request.getActualHours());
+        }
+
+        if (request.getAssignedToId() != null) {
+            // TaskService will validate assignee belongs to tenant
+            User assignee = User.builder()
+                    .id(request.getAssignedToId())
+                    .build();
+            existingTask.setAssignedTo(assignee);
+        }
+
+        // Update task (tenant validated automatically)
+        Task updatedTask = taskService.updateTask(id, existingTask);
+
+        // Convert entity to DTO
+        TaskResponse response = TaskResponse.fromEntity(updatedTask);
+
+        return ResponseEntity.ok(response);
     }
 
+    /**
+     * Get task by ID
+     * 
+     * GET /api/tasks/{id}
+     * 
+     * @param id Task ID
+     * @return Task details
+     */
+    @GetMapping("/{id}")
+    public ResponseEntity<TaskResponse> getTaskById(@PathVariable Long id) {
+        log.debug("Fetching task: {}", id);
+
+        return taskService.getTaskById(id)
+                .map(TaskResponse::fromEntity)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Delete task
+     * 
+     * DELETE /api/tasks/{id}
+     * 
+     * @param id Task ID
+     * @return No content if deleted, not found if doesn't exist
+     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
-        taskService.deleteTask(id);
-        return ResponseEntity.noContent().build();
-    }
+        log.info("Deleting task: {}", id);
 
-    @GetMapping("/project/{projectId}/count")
-    public ResponseEntity<Long> countTasksByProject(@PathVariable Long projectId) {
-        long count = taskService.countTasksByProject(projectId);
-        return ResponseEntity.ok(count);
-    }
+        boolean deleted = taskService.deleteTask(id);
 
-    @GetMapping("/project/{projectId}/status/{status}/count")
-    public ResponseEntity<Long> countTasksByProjectAndStatus(
-            @PathVariable Long projectId,
-            @PathVariable Task.TaskStatus status) {
-        long count = taskService.countTasksByProjectAndStatus(projectId, status);
-        return ResponseEntity.ok(count);
+        return deleted ? 
+                ResponseEntity.noContent().build() : 
+                ResponseEntity.notFound().build();
     }
 }
