@@ -1,23 +1,41 @@
 spring:
+  application:
+    name: workhub
+  
   datasource:
     url: jdbc:postgresql://localhost:5432/workhub
-    username: workhub_user
-    password: change_me
+    username: postgres
+    password: postgres
     driver-class-name: org.postgresql.Driver
+  
   jpa:
     hibernate:
       ddl-auto: update
-    open-in-view: false
     show-sql: true
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+    open-in-view: false
+  
   jackson:
+    serialization:
+      write-dates-as-timestamps: false
     time-zone: UTC
 
 server:
   port: 8080
+  error:
+    include-message: always
+    include-binding-errors: always
 
-app:
-  multi-tenancy:
-    header-name: X-Tenant-ID
+jwt:
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration: 86400000
+
+logging:
+  level:
+    com.workhub: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
