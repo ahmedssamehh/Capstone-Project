@@ -64,7 +64,7 @@ public class AuthController {
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
 
             // Update last login time
-            userService.updateLastLogin(userDetails.getId());
+            userService.updateLastLogin(userDetails.getId(), userDetails.getTenantId());
 
             // Generate JWT token
             String token = jwtUtil.generateToken(
@@ -106,11 +106,10 @@ public class AuthController {
     public ResponseEntity<UserProfileResponse> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null || !authentication.isAuthenticated() ||
+                !(authentication.getPrincipal() instanceof CustomUserDetails userDetails)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
-
-        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         
         // Load full user details through service (with tenant validation)
         UserDto user = userService.getUserById(userDetails.getId());
@@ -121,8 +120,8 @@ public class AuthController {
                 .email(user.getEmail())
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
-                .role(user.getRole())
-                .status(user.getStatus())
+                .role(user.getRole() != null ? user.getRole().name() : null)
+                .status(user.getStatus() != null ? user.getStatus().name() : null)
                 .tenantId(user.getTenantId())
                 .tenantName(user.getTenantName())
                 .lastLoginAt(user.getLastLoginAt())

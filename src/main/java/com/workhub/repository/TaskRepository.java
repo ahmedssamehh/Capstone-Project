@@ -1,6 +1,7 @@
 package com.workhub.repository;
 
 import com.workhub.entity.Task;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -46,7 +47,10 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @param tenantId Tenant ID
      * @return Optional containing task if found in tenant
      */
-    @Query("SELECT t FROM Task t WHERE t.id = :id AND t.tenant.id = :tenantId")
+        @Query("SELECT t FROM Task t " +
+            "JOIN FETCH t.project " +
+            "LEFT JOIN FETCH t.assignedTo " +
+            "WHERE t.id = :id AND t.tenant.id = :tenantId")
     Optional<Task> findByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     /**
@@ -69,6 +73,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @param tenantId Tenant ID
      */
     @Query("DELETE FROM Task t WHERE t.id = :id AND t.tenant.id = :tenantId")
+    @Modifying
     void deleteByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     // ========================================

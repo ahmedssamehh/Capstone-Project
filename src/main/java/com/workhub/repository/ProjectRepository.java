@@ -1,6 +1,7 @@
 package com.workhub.repository;
 
 import com.workhub.entity.Project;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -31,7 +32,11 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @param tenantId Tenant ID
      * @return List of projects in the tenant
      */
-    @Query("SELECT p FROM Project p WHERE p.tenant.id = :tenantId")
+        @Query("SELECT DISTINCT p FROM Project p " +
+            "JOIN FETCH p.tenant " +
+            "JOIN FETCH p.createdBy " +
+            "LEFT JOIN FETCH p.tasks " +
+            "WHERE p.tenant.id = :tenantId")
     List<Project> findByTenantId(@Param("tenantId") Long tenantId);
 
     /**
@@ -43,7 +48,11 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @param tenantId Tenant ID
      * @return Optional containing project if found in tenant
      */
-    @Query("SELECT p FROM Project p WHERE p.id = :id AND p.tenant.id = :tenantId")
+        @Query("SELECT DISTINCT p FROM Project p " +
+            "JOIN FETCH p.tenant " +
+            "JOIN FETCH p.createdBy " +
+            "LEFT JOIN FETCH p.tasks " +
+            "WHERE p.id = :id AND p.tenant.id = :tenantId")
     Optional<Project> findByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     /**
@@ -66,6 +75,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
      * @param tenantId Tenant ID
      */
     @Query("DELETE FROM Project p WHERE p.id = :id AND p.tenant.id = :tenantId")
+    @Modifying
     void deleteByIdAndTenantId(@Param("id") Long id, @Param("tenantId") Long tenantId);
 
     // ========================================

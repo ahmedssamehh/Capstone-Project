@@ -93,9 +93,6 @@ public class TransactionTestController {
             log.info("3. Result: NOTHING should exist in database");
             log.info("========================================");
             
-            // Extract IDs from exception message if possible
-            String message = ex.getMessage();
-            
             // Re-throw to let global exception handler format the response
             throw ex;
         }

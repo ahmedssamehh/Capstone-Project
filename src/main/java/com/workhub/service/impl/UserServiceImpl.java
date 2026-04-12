@@ -193,8 +193,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateLastLogin(Long userId) {
-        Long tenantId = getTenantId();
+    public void updateLastLogin(Long userId, Long tenantId) {
         log.debug("Updating last login for user {} in tenant: {}", userId, tenantId);
 
         userRepository.findByIdAndTenantId(userId, tenantId).ifPresent(user -> {

@@ -29,5 +29,5 @@ public interface UserService {
     
     long countUsersByTenant();
     
-    void updateLastLogin(Long userId);
+    void updateLastLogin(Long userId, Long tenantId);
 }

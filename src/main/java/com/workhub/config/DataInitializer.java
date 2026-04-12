@@ -42,7 +42,6 @@ public class DataInitializer {
                     .name("Demo Company")
                     .plan(Tenant.TenantPlan.PROFESSIONAL)
                     .status(Tenant.TenantStatus.ACTIVE)
-                    .maxUsers(50)
                     .build();
             tenant = tenantRepository.save(tenant);
             log.info("Created tenant: {} (ID: {})", tenant.getName(), tenant.getId());

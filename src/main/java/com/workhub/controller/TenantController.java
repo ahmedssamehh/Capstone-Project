@@ -39,7 +39,7 @@ public class TenantController {
 
     @GetMapping("/context")
     public ResponseEntity<Map<String, String>> tenantContext() {
-        String tenantId = TenantContext.getTenantId();
-        return ResponseEntity.ok(Map.of("tenantId", tenantId == null ? "not-set" : tenantId));
+        Long tenantId = TenantContext.getTenantId();
+        return ResponseEntity.ok(Map.of("tenantId", tenantId == null ? "not-set" : tenantId.toString()));
     }
 }

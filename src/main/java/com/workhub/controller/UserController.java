@@ -4,7 +4,6 @@ import com.workhub.dto.CreateUserRequest;
 import com.workhub.dto.UpdateUserRequest;
 import com.workhub.dto.UserDto;
 import com.workhub.entity.User;
-import com.workhub.security.TenantContext;
 import com.workhub.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
