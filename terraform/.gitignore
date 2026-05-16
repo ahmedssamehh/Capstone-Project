@@ -1,0 +1,19 @@
+# Terraform local state and secrets
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+!secrets.tfvars.example
+**/secrets.tfvars
+!**/secrets.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+secrets.tfvars

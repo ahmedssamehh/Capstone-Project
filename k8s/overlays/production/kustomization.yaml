@@ -1,0 +1,30 @@
+# Production overlay — secrets from CI/CD-injected secrets.env (never committed).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - networkpolicy.yaml
+
+replicas:
+  - name: workhub-api
+    count: 3
+
+secretGenerator:
+  - name: workhub-api-secrets
+    envs:
+      - secrets.env
+    options:
+      labels:
+        app.kubernetes.io/name: workhub-api
+        workhub.io/secret-type: credentials
+
+patches:
+  - path: deployment-patch.yaml
+  - path: configmap-patch.yaml
+  - path: poddisruptionbudget-patch.yaml
+
+images:
+  - name: workhub-app
+    newName: registry.example.com/workhub/workhub-api
+    newTag: "0.0.1-SNAPSHOT"

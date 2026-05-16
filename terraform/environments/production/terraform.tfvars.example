@@ -1,0 +1,6 @@
+image_repository = "registry.example.com/workhub/workhub-api"
+image_tag        = "0.0.1-SNAPSHOT"
+
+# Managed services (override auto-built in-cluster DNS):
+# database_host = "workhub-db.prod.example.com"
+# rabbitmq_host = "amqp.prod.example.com"

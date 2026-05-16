@@ -1,0 +1,16 @@
+# Local / minikube overlay — generates Secret from gitignored secrets.env
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+secretGenerator:
+  - name: workhub-api-secrets
+    envs:
+      - secrets.env
+    options:
+      disableNameSuffixHash: true
+      labels:
+        app.kubernetes.io/name: workhub-api
+        workhub.io/secret-type: credentials

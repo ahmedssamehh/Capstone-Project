@@ -1,0 +1,49 @@
+# =============================================================================
+# WorkHub Terraform — example variables (NON-SECRET)
+# Copy: cp terraform.tfvars.example terraform.tfvars
+# Secrets: export TF_VAR_database_password=... (see README.md)
+# =============================================================================
+
+environment          = "dev"
+namespace_name       = "workhub"
+manage_namespace     = true
+align_k8s_manifests  = true
+
+app_name    = "workhub-api"
+app_version = "0.0.1"
+
+image_repository  = "registry.example.com/workhub/workhub-api"
+image_tag         = "0.0.1-SNAPSHOT"
+image_pull_policy = "IfNotPresent"
+
+replicas       = 2
+service_port   = 80
+container_port = 8080
+
+spring_profiles_active = "prod"
+
+# Leave null to auto-build from namespace (matches k8s/base/configmap.yaml):
+# database_url  = null
+# database_host = null
+# rabbitmq_host = null
+
+database_port = "5432"
+database_name = "workhub"
+rabbitmq_port = "5672"
+rabbitmq_vhost = "/"
+
+resource_requests = { cpu = "250m", memory = "512Mi" }
+resource_limits   = { cpu = "1", memory = "1Gi" }
+
+pdb_min_available            = 1
+enable_pod_disruption_budget = true
+enable_service_account       = true
+
+# Production example (uncomment in environments/production/terraform.tfvars):
+# replicas = 3
+# pdb_min_available = 2
+# probes = {
+#   readiness_success_threshold = 2
+#   startup_failure_threshold   = 60
+#   ...
+# }

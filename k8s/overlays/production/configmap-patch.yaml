@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workhub-api-config
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  # Replace with managed service endpoints (examples):
+  # DATABASE_HOST: "workhub-db.cluster-xxx.region.rds.amazonaws.com"
+  # DATABASE_URL: "jdbc:postgresql://workhub-db.cluster-xxx.region.rds.amazonaws.com:5432/workhub"
+  # RABBITMQ_HOST: "amqp.example.com"

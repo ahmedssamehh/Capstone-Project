@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: workhub-api
+  labels:
+    app.kubernetes.io/name: workhub-api
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: workhub-platform
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: workhub-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+      appProtocol: http

@@ -89,6 +89,12 @@ application-local.properties
 .env
 .env.local
 
+# Kubernetes local secrets (never commit real credentials)
+k8s/**/secret.local.yaml
+k8s/**/secrets/
+k8s/**/secrets.env
+!k8s/**/secrets.env.example
+
 # Database
 *.db
 *.sqlite

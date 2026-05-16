@@ -1,0 +1,38 @@
+# Non-sensitive configuration only — credentials belong in Secret (generated at deploy time).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workhub-api-config
+  labels:
+    app.kubernetes.io/name: workhub-api
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: workhub-platform
+    workhub.io/config-type: application
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+
+  # Infrastructure endpoints (no credentials) — patch per overlay / environment
+  DATABASE_HOST: "postgres.workhub.svc.cluster.local"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "workhub"
+  # JDBC URL built without secrets; username/password from Secret
+  DATABASE_URL: "jdbc:postgresql://postgres.workhub.svc.cluster.local:5432/workhub"
+
+  RABBITMQ_HOST: "rabbitmq.workhub.svc.cluster.local"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_VHOST: "/"
+
+  WORKHUB_RABBIT_EXCHANGE: "workhub.jobs.direct"
+  WORKHUB_RABBIT_QUEUE: "workhub.jobs.queue"
+  WORKHUB_RABBIT_ROUTING_KEY: "workhub.jobs.process"
+
+  JAVA_OPTS: >-
+    -XX:+UseContainerSupport
+    -XX:MaxRAMPercentage=75.0
+    -XX:InitialRAMPercentage=50.0
+    -XX:+UseG1GC
+    -XX:+ExitOnOutOfMemoryError
+    -Djava.security.egd=file:/dev/urandom
+
+  LOGGING_LEVEL_COM_WORKHUB: "INFO"
+  LOGGING_LEVEL_ORG_SPRINGFRAMEWORK_SECURITY: "WARN"

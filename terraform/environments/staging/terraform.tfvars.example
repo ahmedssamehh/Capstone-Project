@@ -1,0 +1,2 @@
+image_repository = "registry.example.com/workhub/workhub-api"
+image_tag        = "staging"

@@ -1,0 +1,14 @@
+# Ensures voluntary disruptions (node drain, cluster upgrade) leave capacity for tenants.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: workhub-api
+  labels:
+    app.kubernetes.io/name: workhub-api
+    app.kubernetes.io/component: api
+    app.kubernetes.io/part-of: workhub-platform
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: workhub-api

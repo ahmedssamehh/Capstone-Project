@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+replicas:
+  - name: workhub-api
+    count: 2
+
+secretGenerator:
+  - name: workhub-api-secrets
+    envs:
+      - secrets.env
+    options:
+      labels:
+        app.kubernetes.io/name: workhub-api
+        workhub.io/secret-type: credentials
+
+patches:
+  - path: configmap-patch.yaml
+
+images:
+  - name: workhub-app
+    newName: registry.example.com/workhub/workhub-api
+    newTag: staging

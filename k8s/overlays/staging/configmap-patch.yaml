@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workhub-api-config
+data:
+  SPRING_PROFILES_ACTIVE: "prod"
+  DATABASE_URL: "jdbc:postgresql://postgres.workhub.svc.cluster.local:5432/workhub"
+  RABBITMQ_HOST: "rabbitmq.workhub.svc.cluster.local"

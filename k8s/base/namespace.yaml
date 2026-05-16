@@ -1,0 +1,15 @@
+# Isolates WorkHub platform workloads; app-level multi-tenancy stays in JWT + DB scoping.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workhub
+  labels:
+    app.kubernetes.io/name: workhub
+    app.kubernetes.io/part-of: workhub-platform
+    workhub.io/tier: platform
+  annotations:
+    # Enforce baseline pod security in modern clusters (warn | audit | enforce)
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
