@@ -49,8 +49,31 @@ jwt:
   expiration: 86400000
 
 logging:
+  pattern:
+    # Structured key=value logs with correlation ID from MDC.
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} level=%-5level app=%X{appName:-workhub} corr=%X{correlationId:-na} method=%X{httpMethod:-na} path=%X{httpPath:-na} logger=%logger{36} msg=\"%msg\"%n"
   level:
     com.workhub: DEBUG
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+management:
+  endpoints:
+    web:
+      base-path: /actuator
+      exposure:
+        include: health,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: workhub

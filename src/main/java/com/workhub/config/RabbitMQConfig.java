@@ -12,6 +12,7 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.slf4j.MDC;
 
 /**
  * RabbitMQ topology for WorkHub.
@@ -60,6 +61,13 @@ public class RabbitMQConfig {
         template.setMessageConverter(rabbitMessageConverter);
         template.setExchange(exchangeName);
         template.setRoutingKey(routingKey);
+        template.setBeforePublishPostProcessors(message -> {
+            String correlationId = MDC.get("correlationId");
+            if (correlationId != null && !correlationId.isBlank()) {
+                message.getMessageProperties().setHeader(CorrelationHeader.NAME, correlationId);
+            }
+            return message;
+        });
         return template;
     }
 
@@ -72,5 +80,12 @@ public class RabbitMQConfig {
                 "RabbitMQ ready -> host={} port={} user={} exchange={} queue={} routingKey={}",
                 host, port, username, exchangeName, queueName, routingKey
         );
+    }
+
+    public static final class CorrelationHeader {
+        public static final String NAME = "X-Correlation-Id";
+
+        private CorrelationHeader() {
+        }
     }
 }

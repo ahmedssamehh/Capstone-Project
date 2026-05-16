@@ -821,3 +821,35 @@ curl -i -X POST http://localhost:8080/api/projects \
   -H "Content-Type: application/json" \
   -d '{"name":"Should Fail","description":"RBAC check","projectKey":"DENY"}'
 ```
+
+## Enterprise Phase 2 Documentation
+
+Phase 2 introduces asynchronous report workflow, RabbitMQ reliability, idempotent consumer processing, and production observability.
+
+Use the following documents for grading and technical defense:
+
+- `TENANT-ISOLATION-PROOF.md` - Tenant isolation proof strategy and evidence checklist.
+- `OBSERVABILITY.md` - Actuator/Micrometer setup, structured logging, and correlation tracing validation.
+- `async-workflow.md` - End-to-end async event architecture and reliability model.
+- `RABBITMQ-SETUP-GUIDE.md` - Local and operational RabbitMQ setup and verification steps.
+- `POSTMAN-COLLECTION-STRUCTURE-PHASE2.md` - Recommended Postman folder structure for defense demo.
+- `TROUBLESHOOTING-PHASE2.md` - Failure patterns, diagnostics, and recovery guidance.
+
+### Phase 2 Key Endpoints
+
+- Async reporting:
+  - `POST /api/projects/{id}/generate-report`
+  - `GET /api/jobs/{jobId}`
+  - `GET /api/jobs?status=...`
+- Observability:
+  - `GET /actuator/health`
+  - `GET /actuator/health/readiness`
+  - `GET /actuator/health/liveness`
+  - `GET /actuator/metrics`
+
+### Phase 2 Security and Reliability Highlights
+
+- Tenant-safe async processing using tenant-scoped repository queries.
+- `ReportGenerationEvent` with correlation propagation across producer and consumer.
+- Persistent idempotency ledger via `ProcessedMessage` (`eventId` uniqueness).
+- Duplicate message prevention and retry-safe consumer semantics.
