@@ -59,6 +59,13 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, ex.getMessage(), null, request);
     }
 
+    @ExceptionHandler(MessagePublishException.class)
+    public ResponseEntity<ApiError> handleMessagePublishException(
+            MessagePublishException ex,
+            WebRequest request) {
+        return build(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), null, request);
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiError> handleResponseStatus(
             ResponseStatusException ex,

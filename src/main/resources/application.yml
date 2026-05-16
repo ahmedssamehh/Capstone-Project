@@ -34,9 +34,9 @@ spring:
 # WorkHub messaging topology (direct exchange pattern)
 workhub:
   rabbitmq:
-    exchange: ${WORKHUB_RABBIT_EXCHANGE:workhub.direct}
-    queue: ${WORKHUB_RABBIT_QUEUE:workhub.events.queue}
-    routing-key: ${WORKHUB_RABBIT_ROUTING_KEY:workhub.events}
+    exchange: ${WORKHUB_RABBIT_EXCHANGE:workhub.jobs.direct}
+    queue: ${WORKHUB_RABBIT_QUEUE:workhub.jobs.queue}
+    routing-key: ${WORKHUB_RABBIT_ROUTING_KEY:workhub.jobs.process}
 
 server:
   port: 8080

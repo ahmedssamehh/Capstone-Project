@@ -17,9 +17,9 @@ services:
       RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: workhub
       RABBITMQ_PASSWORD: workhub
-      WORKHUB_RABBIT_EXCHANGE: workhub.direct
-      WORKHUB_RABBIT_QUEUE: workhub.events.queue
-      WORKHUB_RABBIT_ROUTING_KEY: workhub.events
+      WORKHUB_RABBIT_EXCHANGE: workhub.jobs.direct
+      WORKHUB_RABBIT_QUEUE: workhub.jobs.queue
+      WORKHUB_RABBIT_ROUTING_KEY: workhub.jobs.process
     depends_on:
       postgres:
         condition: service_healthy

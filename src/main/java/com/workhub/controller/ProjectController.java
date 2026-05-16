@@ -2,6 +2,7 @@ package com.workhub.controller;
 
 import com.workhub.dto.CreateProjectRequest;
 import com.workhub.dto.CreateTaskRequest;
+import com.workhub.dto.JobResponse;
 import com.workhub.dto.ProjectResponse;
 import com.workhub.dto.TaskResponse;
 import com.workhub.entity.Project;
@@ -9,6 +10,7 @@ import com.workhub.entity.Task;
 import com.workhub.exception.ResourceNotFoundException;
 import com.workhub.security.CustomUserDetails;
 import com.workhub.service.ProjectService;
+import com.workhub.service.ReportGenerationService;
 import com.workhub.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final TaskService taskService;
+    private final ReportGenerationService reportGenerationService;
 
     /**
      * Create a new project
@@ -156,5 +159,17 @@ public class ProjectController {
         TaskResponse response = TaskResponse.fromEntity(createdTask);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    /**
+     * Start asynchronous report generation for a project.
+     *
+     * POST /api/projects/{id}/generate-report
+     */
+    @PostMapping("/{id}/generate-report")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ResponseEntity<JobResponse> generateReport(@PathVariable("id") Long projectId) {
+        JobResponse response = reportGenerationService.generateReportForProject(projectId);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
     }
 }
