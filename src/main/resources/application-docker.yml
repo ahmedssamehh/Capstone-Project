@@ -1,0 +1,39 @@
+# Docker Compose local stack profile.
+# Activated with SPRING_PROFILES_ACTIVE=docker (ddl-auto update for first-run schema).
+spring:
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME}
+    password: ${DATABASE_PASSWORD}
+    hikari:
+      connection-timeout: 30000
+      initialization-fail-timeout: 60000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME}
+    password: ${RABBITMQ_PASSWORD}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: 30000
+    template:
+      retry:
+        enabled: true
+        initial-interval: 2000ms
+        max-attempts: 5
+
+management:
+  endpoint:
+    health:
+      show-details: when_authorized
+
+logging:
+  level:
+    com.workhub: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: WARN

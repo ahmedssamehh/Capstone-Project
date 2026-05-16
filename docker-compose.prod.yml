@@ -1,0 +1,28 @@
+# =============================================================================
+# Production overlay — use with base compose file
+# =============================================================================
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# Changes vs local:
+#   - prod Spring profile (ddl-auto validate — schema must exist)
+#   - DB/RabbitMQ not published to host (internal network only)
+#   - Stricter resource limits
+# =============================================================================
+
+services:
+  postgres:
+    ports: []
+
+  rabbitmq:
+    ports: []
+
+  app:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 768M

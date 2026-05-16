@@ -1,104 +1,148 @@
-version: '3.8'
+# =============================================================================
+# WorkHub Enterprise SaaS — Local Development Stack
+# =============================================================================
+#
+# Prerequisites:
+#   cp .env.example .env    # required — secrets are NOT defaulted in this file
+#
+# One-command startup:
+#   docker compose up --build -d
+#
+# Production-style deploy (no host DB/RabbitMQ ports):
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# Startup sequence:
+#   1. postgres  → pg_isready (accepting connections)
+#   2. rabbitmq  → ping + AMQP port 5672 open
+#   3. app       → starts after 1+2 healthy; readiness includes DB + RabbitMQ
+#
+# Docs: DOCKER.md
+# =============================================================================
+
+name: workhub
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-healthcheck-defaults: &healthcheck-defaults
+  interval: 10s
+  timeout: 5s
+  retries: 5
 
 services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: workhub-postgres
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-workhub}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      # Single credential source — must match DATABASE_PASSWORD in .env
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env (see .env.example)}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - workhub-net
+    logging: *default-logging
+    shm_size: 128mb
+    healthcheck:
+      <<: *healthcheck-defaults
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\" -h 127.0.0.1"]
+      start_period: 20s
+      retries: 8
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: workhub-rabbitmq
+    restart: unless-stopped
+    hostname: rabbitmq
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:?Set RABBITMQ_USERNAME in .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+    ports:
+      - "${RABBITMQ_AMQP_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - workhub-net
+    logging: *default-logging
+    healthcheck:
+      <<: *healthcheck-defaults
+      # Ping alone can pass before AMQP accepts clients; verify listener port
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping && rabbitmq-diagnostics -q check_port_listener 5672"]
+      start_period: 40s
+      retries: 12
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    image: workhub-app:local
     container_name: workhub-app
-    ports:
-      - "8080:8080"
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    env_file:
+      - path: .env
+        required: true
     environment:
-      # Image defaults to prod profile; use application-prod.yml variable names locally.
-      SPRING_PROFILES_ACTIVE: prod
-      DATABASE_URL: jdbc:postgresql://postgres:5432/workhub
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: postgres
-      JWT_SECRET: 01234567890123456789012345678901
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-workhub}
+      DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
       RABBITMQ_HOST: rabbitmq
-      RABBITMQ_PORT: 5672
-      RABBITMQ_USERNAME: workhub
-      RABBITMQ_PASSWORD: workhub
-      WORKHUB_RABBIT_EXCHANGE: workhub.jobs.direct
-      WORKHUB_RABBIT_QUEUE: workhub.jobs.queue
-      WORKHUB_RABBIT_ROUTING_KEY: workhub.jobs.process
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health/liveness"]
-      interval: 30s
-      timeout: 5s
-      start_period: 90s
-      retries: 3
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USERNAME: ${RABBITMQ_USERNAME}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VHOST: ${RABBITMQ_VHOST:-/}
+      WORKHUB_RABBIT_EXCHANGE: ${WORKHUB_RABBIT_EXCHANGE:-workhub.jobs.direct}
+      WORKHUB_RABBIT_QUEUE: ${WORKHUB_RABBIT_QUEUE:-workhub.jobs.queue}
+      WORKHUB_RABBIT_ROUTING_KEY: ${WORKHUB_RABBIT_ROUTING_KEY:-workhub.jobs.process}
+      JAVA_OPTS: ${JAVA_OPTS:-}
+    ports:
+      - "${APP_PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
-      - workhub-network
-
-  postgres:
-    image: postgres:15-alpine
-    container_name: workhub-postgres
-    environment:
-      POSTGRES_DB: workhub
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - workhub-network
+      - workhub-net
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health/liveness"]
+      interval: 30s
       timeout: 5s
+      start_period: 120s
       retries: 5
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: workhub-rabbitmq
-    environment:
-      RABBITMQ_DEFAULT_USER: workhub
-      RABBITMQ_DEFAULT_PASS: workhub
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
-    healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-    networks:
-      - workhub-network
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: workhub-pgadmin
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@workhub.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-      PGADMIN_CONFIG_SERVER_MODE: 'False'
-    ports:
-      - "5050:80"
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    networks:
-      - workhub-network
-    depends_on:
-      - postgres
-  
 
 volumes:
   postgres_data:
-    driver: local
+    name: workhub-postgres-data
   rabbitmq_data:
-    driver: local
-  pgadmin_data:
-    driver: local
+    name: workhub-rabbitmq-data
 
 networks:
-  workhub-network:
+  workhub-net:
+    name: workhub-net
     driver: bridge

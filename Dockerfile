@@ -56,6 +56,7 @@ RUN java -Djarmode=tools -jar app.jar extract --layers --launcher --destination 
 # -----------------------------------------------------------------------------
 # Stage 4: Production runtime (minimal JRE + application layers only)
 # -----------------------------------------------------------------------------
+# Pin digest in CI/prod for immutable deploys; tag updated on security patches
 FROM eclipse-temurin:17-jre-alpine AS runtime
 
 # Labels for image metadata (OCI / registry scanning)
@@ -98,9 +99,7 @@ USER spring:spring
 
 EXPOSE 8080
 
-# Production profile; override env vars at deploy time (see application-prod.yml)
-ENV SPRING_PROFILES_ACTIVE=prod
-
+# Profile and secrets are set at deploy time (compose/K8s), never baked into the image
 # Actuator liveness - public in SecurityConfig; matches Kubernetes liveness probes
 HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
     CMD curl -fsS http://127.0.0.1:8080/actuator/health/liveness || exit 1
