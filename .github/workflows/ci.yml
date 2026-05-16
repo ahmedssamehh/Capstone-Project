@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Verify Docker availability for Testcontainers
+        run: |
+          docker version
+          docker info
+
+      - name: Build and run full test suite (unit + integration)
+        run: mvn -B -U clean test
+
+      - name: Fail if any tests were skipped
+        shell: bash
+        run: |
+          python - <<'PY'
+          import glob
+          import os
+          import sys
+          import xml.etree.ElementTree as ET
+
+          files = glob.glob("target/surefire-reports/TEST-*.xml")
+          if not files:
+              print("No surefire XML reports found.")
+              sys.exit(1)
+
+          skipped = 0
+          total = 0
+          for f in files:
+              root = ET.parse(f).getroot()
+              skipped += int(root.attrib.get("skipped", "0"))
+              total += int(root.attrib.get("tests", "0"))
+
+          print(f"Total tests: {total}, skipped: {skipped}")
+          if skipped > 0:
+              print("Failing build because skipped tests are not allowed in Phase 2 CI.")
+              sys.exit(1)
+          PY

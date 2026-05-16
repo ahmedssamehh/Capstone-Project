@@ -13,6 +13,7 @@ public interface MessageIdempotencyService {
     enum ProcessingDecision {
         PROCEED,
         ALREADY_COMPLETED,
-        ALREADY_PROCESSING
+        ALREADY_PROCESSING,
+        INVALID_EVENT
     }
 }

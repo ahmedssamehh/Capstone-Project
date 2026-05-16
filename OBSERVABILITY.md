@@ -14,8 +14,8 @@ This guide documents production-ready observability for WorkHub:
 - `GET /actuator/health`
 - `GET /actuator/health/readiness`
 - `GET /actuator/health/liveness`
-- `GET /actuator/metrics`
-- `GET /actuator/prometheus`
+- `GET /actuator/metrics` (authenticated)
+- `GET /actuator/prometheus` (authenticated)
 
 ## Architecture
 
@@ -44,6 +44,18 @@ Logs are emitted as key-value records with:
 - message
 
 This format is SIEM- and grep-friendly for incident analysis.
+
+## Endpoint Exposure Policy
+
+- Public/Orchestration-safe:
+  - `/actuator/health`
+  - `/actuator/health/readiness`
+  - `/actuator/health/liveness`
+- Protected (RBAC):
+  - `/actuator/metrics/**` -> `TENANT_ADMIN`
+  - `/actuator/prometheus` -> `TENANT_ADMIN`
+
+This prevents uncontrolled leakage of operational metadata while preserving required health probes.
 
 ## Verification Checklist
 

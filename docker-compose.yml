@@ -9,9 +9,11 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/workhub
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
+      # Image defaults to prod profile; use application-prod.yml variable names locally.
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://postgres:5432/workhub
+      DATABASE_USERNAME: postgres
+      DATABASE_PASSWORD: postgres
       JWT_SECRET: 01234567890123456789012345678901
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
@@ -20,6 +22,12 @@ services:
       WORKHUB_RABBIT_EXCHANGE: workhub.jobs.direct
       WORKHUB_RABBIT_QUEUE: workhub.jobs.queue
       WORKHUB_RABBIT_ROUTING_KEY: workhub.jobs.process
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health/liveness"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
     depends_on:
       postgres:
         condition: service_healthy

@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
@@ -23,9 +24,11 @@ public class MessageIdempotencyServiceImpl implements MessageIdempotencyService 
     private final ProcessedMessageRepository processedMessageRepository;
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public ProcessingDecision beginProcessing(ReportGenerationEvent event) {
-        validateEventId(event.getEventId());
+        if (!isValidEvent(event)) {
+            return ProcessingDecision.INVALID_EVENT;
+        }
 
         ProcessedMessage existing = processedMessageRepository.findByEventId(event.getEventId()).orElse(null);
         if (existing != null) {
@@ -62,7 +65,7 @@ public class MessageIdempotencyServiceImpl implements MessageIdempotencyService 
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void markCompleted(String eventId) {
         processedMessageRepository.findByEventId(eventId).ifPresent(pm -> {
             pm.setStatus(ProcessedMessageStatus.COMPLETED);
@@ -73,7 +76,7 @@ public class MessageIdempotencyServiceImpl implements MessageIdempotencyService 
     }
 
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
     public void markFailed(String eventId, String reason) {
         processedMessageRepository.findByEventId(eventId).ifPresent(pm -> {
             pm.setStatus(ProcessedMessageStatus.FAILED);
@@ -83,10 +86,12 @@ public class MessageIdempotencyServiceImpl implements MessageIdempotencyService 
         });
     }
 
-    private void validateEventId(String eventId) {
-        if (eventId == null || eventId.isBlank()) {
-            throw new IllegalArgumentException("Event ID is required for idempotent processing");
-        }
+    private boolean isValidEvent(ReportGenerationEvent event) {
+        return event != null
+                && event.getEventId() != null && !event.getEventId().isBlank()
+                && event.getTenantId() != null
+                && event.getJobId() != null
+                && event.getProjectId() != null;
     }
 
     private String truncate(String reason) {

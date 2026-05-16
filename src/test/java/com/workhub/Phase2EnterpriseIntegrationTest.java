@@ -387,11 +387,66 @@ class Phase2EnterpriseIntegrationTest {
     }
 
     @Test
+    void retryAfterFailureProcessesSafely() throws Exception {
+        String eventId = "retry-" + UUID.randomUUID();
+        Job job = jobRepository.save(Job.builder()
+                .tenant(tenantRepository.getReferenceById(tenantOneId))
+                .project(projectRepository.getReferenceById(tenantOneProjectId))
+                .status(JobStatus.PENDING)
+                .correlationId("corr-retry-" + UUID.randomUUID())
+                .build());
+
+        doThrow(new RuntimeException("retry-failure-once"))
+                .doCallRealMethod()
+                .when(reportGenerationConsumerService)
+                .executeBusinessWorkflow(ArgumentMatchers.argThat(e -> eventId.equals(e.getEventId())));
+
+        ReportGenerationEvent retryEvent = ReportGenerationEvent.builder()
+                .eventId(eventId)
+                .jobId(job.getId())
+                .tenantId(tenantOneId)
+                .projectId(tenantOneProjectId)
+                .timestamp(java.time.OffsetDateTime.now())
+                .correlationId(job.getCorrelationId())
+                .build();
+
+        rabbitTemplate.convertAndSend("workhub.jobs.direct", "workhub.jobs.process", retryEvent);
+
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(10))
+                .untilAsserted(() -> {
+                    Job failedJob = jobRepository.findByIdAndTenant_Id(job.getId(), tenantOneId).orElseThrow();
+                    org.assertj.core.api.Assertions.assertThat(failedJob.getStatus()).isEqualTo(JobStatus.FAILED);
+                });
+
+        rabbitTemplate.convertAndSend("workhub.jobs.direct", "workhub.jobs.process", retryEvent);
+
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(10))
+                .untilAsserted(() -> {
+                    Job recovered = jobRepository.findByIdAndTenant_Id(job.getId(), tenantOneId).orElseThrow();
+                    org.assertj.core.api.Assertions.assertThat(recovered.getStatus()).isEqualTo(JobStatus.COMPLETED);
+
+                    ProcessedMessage message = processedMessageRepository.findByEventId(eventId).orElseThrow();
+                    org.assertj.core.api.Assertions.assertThat(message.getStatus()).isEqualTo(ProcessedMessageStatus.COMPLETED);
+                    org.assertj.core.api.Assertions.assertThat(message.getAttemptCount()).isGreaterThanOrEqualTo(2);
+                });
+    }
+
+    @Test
     void actuatorEndpointsAccessible() throws Exception {
         mockMvc.perform(get("/actuator/health")).andExpect(status().isOk());
         mockMvc.perform(get("/actuator/health/readiness")).andExpect(status().isOk());
         mockMvc.perform(get("/actuator/health/liveness")).andExpect(status().isOk());
-        mockMvc.perform(get("/actuator/metrics")).andExpect(status().isOk());
+        mockMvc.perform(get("/actuator/metrics")
+                        .header("Authorization", "Bearer " + tenantOneAdminToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void actuatorMetricsProtectedWithoutToken() throws Exception {
+        mockMvc.perform(get("/actuator/metrics"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

@@ -63,8 +63,19 @@ Phase 2 introduces asynchronous report generation with reliable, idempotent proc
   - converted to service-level publish exception
   - safe API response via global exception handler
 - Consumer processing failure:
-  - job marked `FAILED` with truncated reason
-  - processed message marked `FAILED`
+  - job marked `FAILED` with truncated reason in independent transaction
+  - processed message marked `FAILED` in independent transaction
+  - failure evidence persists even if surrounding processing path fails
+
+## Transaction Semantics (Hardening)
+
+- Consumer orchestration is non-transactional.
+- State transitions use explicit `REQUIRES_NEW` boundaries:
+  - idempotency reservation
+  - mark completed
+  - mark failed
+  - job state transitions
+- This design prevents rollback from erasing failure evidence.
 
 ## Operational Notes
 

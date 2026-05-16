@@ -1,0 +1,47 @@
+# Build artifacts and caches
+target/
+.mvn/
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# IDE and editor
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+.factorypath
+
+# Documentation (not needed in image build context)
+*.md
+docs/
+postman/
+
+# CI and local tooling
+.github/
+*.log
+logs/
+tmp/
+temp/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Test sources (excluded from production image build context)
+src/test/
+
+# Environment and secrets (must be injected at runtime)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/

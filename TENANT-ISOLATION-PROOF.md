@@ -24,6 +24,16 @@ Tenant isolation is enforced at four layers:
   - Path IDs without tenant filtering.
   - Async message duplicates/retries without idempotency ledger.
 
+## Tenant Identity Hardening
+
+WorkHub enforces globally unique user email to remove login ambiguity:
+
+- Database unique constraint on `users.email`.
+- Service-level duplicate checks on create/update.
+- Authentication resolves principal by unique email.
+
+This guarantees one canonical identity per email and avoids cross-tenant ambiguity during JWT subject resolution.
+
 ## Evidence of Controls
 
 - Request controls:

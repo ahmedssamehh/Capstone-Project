@@ -834,6 +834,7 @@ Use the following documents for grading and technical defense:
 - `RABBITMQ-SETUP-GUIDE.md` - Local and operational RabbitMQ setup and verification steps.
 - `POSTMAN-COLLECTION-STRUCTURE-PHASE2.md` - Recommended Postman folder structure for defense demo.
 - `TROUBLESHOOTING-PHASE2.md` - Failure patterns, diagnostics, and recovery guidance.
+- `TESTPLAN.md` - Requirement-to-test matrix with evidence mapping.
 
 ### Phase 2 Key Endpoints
 
@@ -853,3 +854,6 @@ Use the following documents for grading and technical defense:
 - `ReportGenerationEvent` with correlation propagation across producer and consumer.
 - Persistent idempotency ledger via `ProcessedMessage` (`eventId` uniqueness).
 - Duplicate message prevention and retry-safe consumer semantics.
+- Durable failure recording with explicit transactional boundaries (`REQUIRES_NEW`).
+- Global unique email identity model to prevent authentication ambiguity.
+- Actuator health endpoints public, metrics endpoints protected.

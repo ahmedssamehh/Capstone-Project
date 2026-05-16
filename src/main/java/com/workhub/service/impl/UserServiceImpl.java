@@ -42,8 +42,8 @@ public class UserServiceImpl implements UserService {
         Long tenantId = getTenantId();
         log.info("Creating user '{}' for tenant: {}", request.getEmail(), tenantId);
 
-        if (userRepository.existsByEmailAndTenantId(request.getEmail(), tenantId)) {
-            throw new DuplicateResourceException("Email already exists in current tenant: " + request.getEmail());
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new DuplicateResourceException("Email already exists: " + request.getEmail());
         }
 
         Tenant tenant = tenantRepository.findById(tenantId)
@@ -144,8 +144,8 @@ public class UserServiceImpl implements UserService {
         }
         if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
             // Check email uniqueness
-            if (userRepository.existsByEmailAndTenantIdAndIdNot(request.getEmail(), tenantId, id)) {
-                throw new DuplicateResourceException("Email already exists in current tenant: " + request.getEmail());
+            if (userRepository.existsByEmailAndIdNot(request.getEmail(), id)) {
+                throw new DuplicateResourceException("Email already exists: " + request.getEmail());
             }
             user.setEmail(request.getEmail());
         }
