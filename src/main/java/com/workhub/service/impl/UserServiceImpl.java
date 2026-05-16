@@ -5,6 +5,8 @@ import com.workhub.dto.UpdateUserRequest;
 import com.workhub.dto.UserDto;
 import com.workhub.entity.Tenant;
 import com.workhub.entity.User;
+import com.workhub.exception.DuplicateResourceException;
+import com.workhub.exception.ResourceNotFoundException;
 import com.workhub.repository.TenantRepository;
 import com.workhub.repository.UserRepository;
 import com.workhub.security.TenantContext;
@@ -28,7 +30,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -40,14 +42,12 @@ public class UserServiceImpl implements UserService {
         Long tenantId = getTenantId();
         log.info("Creating user '{}' for tenant: {}", request.getEmail(), tenantId);
 
-        // Validate email uniqueness
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already exists: " + request.getEmail());
+        if (userRepository.existsByEmailAndTenantId(request.getEmail(), tenantId)) {
+            throw new DuplicateResourceException("Email already exists in current tenant: " + request.getEmail());
         }
 
-        // Get tenant
         Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
 
         // Create user
         User user = User.builder()
@@ -73,7 +73,7 @@ public class UserServiceImpl implements UserService {
         log.debug("Fetching user {} for tenant: {}", id, tenantId);
 
         User user = userRepository.findByIdAndTenantId(id, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found or access denied: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return UserDto.fromEntity(user);
     }
@@ -85,7 +85,7 @@ public class UserServiceImpl implements UserService {
         log.debug("Fetching user by email '{}' for tenant: {}", email, tenantId);
 
         User user = userRepository.findByEmailAndTenantId(email, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return UserDto.fromEntity(user);
     }
@@ -133,7 +133,7 @@ public class UserServiceImpl implements UserService {
 
         // Get existing user with tenant validation
         User user = userRepository.findByIdAndTenantId(id, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found or access denied: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // Update fields
         if (request.getFirstName() != null) {
@@ -144,8 +144,8 @@ public class UserServiceImpl implements UserService {
         }
         if (request.getEmail() != null && !request.getEmail().equals(user.getEmail())) {
             // Check email uniqueness
-            if (userRepository.existsByEmailInTenantExcludingUser(request.getEmail(), tenantId, id)) {
-                throw new IllegalArgumentException("Email already exists: " + request.getEmail());
+            if (userRepository.existsByEmailAndTenantIdAndIdNot(request.getEmail(), tenantId, id)) {
+                throw new DuplicateResourceException("Email already exists in current tenant: " + request.getEmail());
             }
             user.setEmail(request.getEmail());
         }
@@ -172,16 +172,10 @@ public class UserServiceImpl implements UserService {
 
         // Verify user exists and belongs to tenant
         User user = userRepository.findByIdAndTenantId(id, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found or access denied: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         userRepository.delete(user);
         log.info("Deleted user {} for tenant: {}", id, tenantId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
     }
 
     @Override

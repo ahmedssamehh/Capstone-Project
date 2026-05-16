@@ -12,6 +12,12 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.H2Dialect
+  rabbitmq:
+    dynamic: false
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
 
 jwt:
   secret: 01234567890123456789012345678901

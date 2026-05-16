@@ -5,6 +5,8 @@ import com.workhub.service.TransactionalTestService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.context.annotation.Profile;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,6 +25,8 @@ import java.util.Map;
 @RequestMapping("/api/test/transaction")
 @RequiredArgsConstructor
 @Slf4j
+@Profile("!prod")
+@PreAuthorize("hasRole('TENANT_ADMIN')")
 public class TransactionTestController {
 
     private final TransactionalTestService transactionalTestService;

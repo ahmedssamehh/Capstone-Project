@@ -3,6 +3,8 @@ package com.workhub.service;
 import com.workhub.entity.Project;
 import com.workhub.entity.Tenant;
 import com.workhub.entity.User;
+import com.workhub.exception.DuplicateResourceException;
+import com.workhub.exception.ResourceNotFoundException;
 import com.workhub.repository.ProjectRepository;
 import com.workhub.repository.TenantRepository;
 import com.workhub.repository.UserRepository;
@@ -30,7 +32,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
@@ -76,8 +78,7 @@ public class ProjectService {
     @Transactional(readOnly = true)
     public Project getProjectByIdOrThrow(Long projectId) {
         return getProjectById(projectId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Project not found or access denied: " + projectId));
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
     }
 
     /**
@@ -183,9 +184,9 @@ public class ProjectService {
 
         // Set tenant and creator (with validation)
         Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
         User creator = userRepository.findByIdAndTenantId(creatorId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Creator not found: " + creatorId));
+                .orElseThrow(() -> new ResourceNotFoundException("Creator not found"));
         
         project.setTenant(tenant);
         project.setCreatedBy(creator);
@@ -418,8 +419,7 @@ public class ProjectService {
     private void validateUserBelongsToTenant(Long userId, Long tenantId) {
         if (!userRepository.findByIdAndTenantId(userId, tenantId).isPresent()) {
             log.error("User {} does not belong to tenant {}", userId, tenantId);
-            throw new IllegalArgumentException(
-                "User does not belong to current tenant");
+            throw new ResourceNotFoundException("User not found in current tenant");
         }
     }
 
@@ -432,8 +432,7 @@ public class ProjectService {
      */
     private void validateProjectKeyUnique(String projectKey, Long tenantId) {
         if (projectRepository.existsByProjectKeyInTenant(tenantId, projectKey)) {
-            throw new IllegalArgumentException(
-                "Project key already exists: " + projectKey);
+            throw new DuplicateResourceException("Project key already exists: " + projectKey);
         }
     }
 
@@ -449,8 +448,7 @@ public class ProjectService {
             String projectKey, Long tenantId, Long excludeProjectId) {
         if (projectRepository.existsByProjectKeyInTenantExcludingProject(
                 tenantId, projectKey, excludeProjectId)) {
-            throw new IllegalArgumentException(
-                "Project key already exists: " + projectKey);
+            throw new DuplicateResourceException("Project key already exists: " + projectKey);
         }
     }
 }

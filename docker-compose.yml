@@ -1,6 +1,33 @@
 version: '3.8'
 
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workhub-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/workhub
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      JWT_SECRET: 01234567890123456789012345678901
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: workhub
+      RABBITMQ_PASSWORD: workhub
+      WORKHUB_RABBIT_EXCHANGE: workhub.direct
+      WORKHUB_RABBIT_QUEUE: workhub.events.queue
+      WORKHUB_RABBIT_ROUTING_KEY: workhub.events
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - workhub-network
+
   postgres:
     image: postgres:15-alpine
     container_name: workhub-postgres
@@ -20,6 +47,25 @@ services:
       timeout: 5s
       retries: 5
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: workhub-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: workhub
+      RABBITMQ_DEFAULT_PASS: workhub
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - workhub-network
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: workhub-pgadmin
@@ -35,9 +81,12 @@ services:
       - workhub-network
     depends_on:
       - postgres
+  
 
 volumes:
   postgres_data:
+    driver: local
+  rabbitmq_data:
     driver: local
   pgadmin_data:
     driver: local

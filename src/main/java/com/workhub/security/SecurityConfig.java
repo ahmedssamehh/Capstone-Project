@@ -3,6 +3,7 @@ package com.workhub.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -26,6 +27,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
+    private static final String TENANT_ADMIN = "TENANT_ADMIN";
+    private static final String TENANT_USER = "TENANT_USER";
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final CustomUserDetailsService userDetailsService;
@@ -41,12 +44,25 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints
-                    .requestMatchers("/api/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers("/error").permitAll()
-                        // All other endpoints require authentication
-                        .anyRequest().authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/auth/me").hasAnyRole(TENANT_ADMIN, TENANT_USER)
+                        .requestMatchers(HttpMethod.GET, "/api/projects/**").hasAnyRole(TENANT_ADMIN, TENANT_USER)
+                        .requestMatchers(HttpMethod.GET, "/api/tasks/**").hasAnyRole(TENANT_ADMIN, TENANT_USER)
+                        .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole(TENANT_ADMIN, TENANT_USER)
+                        .requestMatchers(HttpMethod.GET, "/api/test/transaction/**").hasRole(TENANT_ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/test/transaction/**").hasRole(TENANT_ADMIN)
+                        .requestMatchers("/api/tenant/**").hasRole(TENANT_ADMIN)
+                        .requestMatchers("/api/v1/tenants/**").hasRole(TENANT_ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/projects/**").hasRole(TENANT_ADMIN)
+                        .requestMatchers(HttpMethod.POST, "/api/users/**").hasRole(TENANT_ADMIN)
+                        .requestMatchers(HttpMethod.PUT, "/api/users/**").hasRole(TENANT_ADMIN)
+                        .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole(TENANT_ADMIN)
+                        .requestMatchers(HttpMethod.PATCH, "/api/tasks/**").hasRole(TENANT_ADMIN)
+                        .requestMatchers(HttpMethod.DELETE, "/api/tasks/**").hasRole(TENANT_ADMIN)
+                        .anyRequest().denyAll()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)

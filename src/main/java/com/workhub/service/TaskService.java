@@ -4,6 +4,7 @@ import com.workhub.entity.Project;
 import com.workhub.entity.Task;
 import com.workhub.entity.Tenant;
 import com.workhub.entity.User;
+import com.workhub.exception.ResourceNotFoundException;
 import com.workhub.repository.ProjectRepository;
 import com.workhub.repository.TaskRepository;
 import com.workhub.repository.TenantRepository;
@@ -33,7 +34,7 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
+@Transactional(rollbackFor = Exception.class)
 public class TaskService {
 
     private final TaskRepository taskRepository;
@@ -80,8 +81,7 @@ public class TaskService {
     @Transactional(readOnly = true)
     public Task getTaskByIdOrThrow(Long taskId) {
         return getTaskById(taskId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Task not found or access denied: " + taskId));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
     }
 
     /**
@@ -284,9 +284,9 @@ public class TaskService {
 
         // Set tenant and project (with validation)
         Tenant tenant = tenantRepository.findById(tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantId));
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant not found"));
         Project project = projectRepository.findByIdAndTenantId(projectId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Project not found: " + projectId));
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
         
         task.setTenant(tenant);
         task.setProject(project);
@@ -401,7 +401,7 @@ public class TaskService {
         validateUserBelongsToTenant(userId, tenantId);
 
         User user = userRepository.findByIdAndTenantId(userId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         task.setAssignedTo(user);
 
         return taskRepository.save(task);
@@ -455,7 +455,7 @@ public class TaskService {
         validateProjectBelongsToTenant(newProjectId, tenantId);
 
         Project newProject = projectRepository.findByIdAndTenantId(newProjectId, tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Project not found: " + newProjectId));
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
         task.setProject(newProject);
 
         return taskRepository.save(task);
@@ -617,8 +617,7 @@ public class TaskService {
     private void validateProjectBelongsToTenant(Long projectId, Long tenantId) {
         if (!projectRepository.existsByIdAndTenantId(projectId, tenantId)) {
             log.error("Project {} does not belong to tenant {}", projectId, tenantId);
-            throw new IllegalArgumentException(
-                "Project does not belong to current tenant");
+            throw new ResourceNotFoundException("Project not found in current tenant");
         }
     }
 
@@ -632,8 +631,7 @@ public class TaskService {
     private void validateUserBelongsToTenant(Long userId, Long tenantId) {
         if (!userRepository.findByIdAndTenantId(userId, tenantId).isPresent()) {
             log.error("User {} does not belong to tenant {}", userId, tenantId);
-            throw new IllegalArgumentException(
-                "User does not belong to current tenant");
+            throw new ResourceNotFoundException("User not found in current tenant");
         }
     }
 }

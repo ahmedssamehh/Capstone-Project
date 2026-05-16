@@ -25,8 +25,6 @@ public interface UserService {
     
     void deleteUser(Long id);
     
-    boolean existsByEmail(String email);
-    
     long countUsersByTenant();
     
     void updateLastLogin(Long userId, Long tenantId);

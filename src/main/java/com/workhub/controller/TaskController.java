@@ -4,11 +4,13 @@ import com.workhub.dto.TaskResponse;
 import com.workhub.dto.UpdateTaskRequest;
 import com.workhub.entity.Task;
 import com.workhub.entity.User;
+import com.workhub.exception.ResourceNotFoundException;
 import com.workhub.service.TaskService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/tasks")
 @RequiredArgsConstructor
 @Slf4j
+@PreAuthorize("hasAnyRole('TENANT_ADMIN','TENANT_USER')")
 public class TaskController {
 
     private final TaskService taskService;
@@ -34,6 +37,7 @@ public class TaskController {
      * @return Updated task
      */
     @PatchMapping("/{id}")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<TaskResponse> updateTask(
             @PathVariable Long id,
             @Valid @RequestBody UpdateTaskRequest request) {
@@ -104,7 +108,7 @@ public class TaskController {
         return taskService.getTaskById(id)
                 .map(TaskResponse::fromEntity)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
     }
 
     /**
@@ -116,13 +120,15 @@ public class TaskController {
      * @return No content if deleted, not found if doesn't exist
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         log.info("Deleting task: {}", id);
 
         boolean deleted = taskService.deleteTask(id);
 
-        return deleted ? 
-                ResponseEntity.noContent().build() : 
-                ResponseEntity.notFound().build();
+        if (!deleted) {
+            throw new ResourceNotFoundException("Task not found");
+        }
+        return ResponseEntity.noContent().build();
     }
 }

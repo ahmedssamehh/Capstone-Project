@@ -1,7 +1,7 @@
 package com.workhub.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.workhub.dto.ErrorResponse;
+import com.workhub.exception.ApiError;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,7 +13,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.List;
+import java.time.OffsetDateTime;
 
 @Component
 @RequiredArgsConstructor
@@ -27,9 +27,13 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
             HttpServletResponse response,
             AuthenticationException authException
     ) throws IOException, ServletException {
-        ErrorResponse body = ErrorResponse.builder()
-                .message("Unauthorized access")
-                .details(List.of("Authentication required", "Please provide a valid JWT token"))
+        ApiError body = ApiError.builder()
+                .timestamp(OffsetDateTime.now())
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .error(HttpStatus.UNAUTHORIZED.getReasonPhrase())
+                .message("Authentication required")
+                .path(request.getRequestURI())
+                .correlationId((String) request.getAttribute(CorrelationIdFilter.ATTRIBUTE_NAME))
                 .build();
 
         response.setStatus(HttpStatus.UNAUTHORIZED.value());

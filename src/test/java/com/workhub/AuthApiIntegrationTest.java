@@ -68,7 +68,12 @@ class AuthApiIntegrationTest {
     void authMeWithoutTokenIsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/auth/me"))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("Unauthorized access"));
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.error").value("Unauthorized"))
+                .andExpect(jsonPath("$.message").value("Authentication required"))
+                .andExpect(jsonPath("$.path").value("/api/auth/me"))
+                .andExpect(jsonPath("$.correlationId").exists());
     }
 
     @Test
@@ -105,7 +110,12 @@ class AuthApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(invalidProjectBody))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Validation failed"))
+                .andExpect(jsonPath("$.path").value("/api/projects"))
+                .andExpect(jsonPath("$.correlationId").exists())
                 .andExpect(jsonPath("$.details").isArray());
     }
 }

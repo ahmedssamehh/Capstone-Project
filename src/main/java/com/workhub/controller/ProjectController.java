@@ -6,6 +6,7 @@ import com.workhub.dto.ProjectResponse;
 import com.workhub.dto.TaskResponse;
 import com.workhub.entity.Project;
 import com.workhub.entity.Task;
+import com.workhub.exception.ResourceNotFoundException;
 import com.workhub.security.CustomUserDetails;
 import com.workhub.service.ProjectService;
 import com.workhub.service.TaskService;
@@ -15,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/projects")
 @RequiredArgsConstructor
 @Slf4j
+@PreAuthorize("hasAnyRole('TENANT_ADMIN','TENANT_USER')")
 public class ProjectController {
 
     private final ProjectService projectService;
@@ -44,6 +47,7 @@ public class ProjectController {
      * @return Created project
      */
     @PostMapping
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<ProjectResponse> createProject(
             @Valid @RequestBody CreateProjectRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -104,7 +108,7 @@ public class ProjectController {
         return projectService.getProjectById(id)
                 .map(ProjectResponse::fromEntity)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new ResourceNotFoundException("Project not found"));
     }
 
     /**
@@ -117,6 +121,7 @@ public class ProjectController {
      * @return Created task
      */
     @PostMapping("/{id}/tasks")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<TaskResponse> createTaskForProject(
             @PathVariable Long id,
             @Valid @RequestBody CreateTaskRequest request) {
@@ -125,7 +130,7 @@ public class ProjectController {
 
         // Verify project exists and belongs to tenant
         if (!projectService.projectExists(id)) {
-            return ResponseEntity.notFound().build();
+            throw new ResourceNotFoundException("Project not found");
         }
 
         // Convert DTO to entity
@@ -139,9 +144,6 @@ public class ProjectController {
 
         // Set assignee if provided
         if (request.getAssignedToId() != null) {
-            // Note: TaskService will validate assignee belongs to tenant
-            Task tempTask = new Task();
-            tempTask.setId(request.getAssignedToId());
             task.setAssignedTo(com.workhub.entity.User.builder()
                     .id(request.getAssignedToId())
                     .build());

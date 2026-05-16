@@ -1,0 +1,116 @@
+{
+  "info": {
+    "name": "WorkHub Phase 1",
+    "_postman_id": "f4e98126-6c0c-4f0d-b96e-4e02a437df77",
+    "description": "Phase 1 enterprise verification collection for auth, RBAC, tenant isolation, and rollback checks.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "adminEmail", "value": "admin@demo.com" },
+    { "key": "adminPassword", "value": "admin123" },
+    { "key": "userEmail", "value": "user@demo.com" },
+    { "key": "userPassword", "value": "user123" },
+    { "key": "adminToken", "value": "" },
+    { "key": "userToken", "value": "" },
+    { "key": "projectId", "value": "" },
+    { "key": "taskId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        },
+        {
+          "name": "Get Me (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Projects and Tasks",
+      "item": [
+        {
+          "name": "Create Project (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Phase1 Project\",\n  \"description\": \"Created from Postman\",\n  \"projectKey\": \"P1COLL\"\n}"
+            },
+            "url": "{{baseUrl}}/api/projects"
+          }
+        },
+        {
+          "name": "Create Task (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Collection Task\",\n  \"description\": \"RBAC + isolation check\",\n  \"priority\": \"HIGH\",\n  \"estimatedHours\": 2\n}"
+            },
+            "url": "{{baseUrl}}/api/projects/{{projectId}}/tasks"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Security and Isolation Checks",
+      "item": [
+        {
+          "name": "Unauthorized Access -> 401",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/projects"
+          }
+        },
+        {
+          "name": "Forbidden Mutation -> 403",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{userToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Forbidden\",\n  \"description\": \"Should fail\",\n  \"projectKey\": \"NOPE\"\n}"
+            },
+            "url": "{{baseUrl}}/api/projects"
+          }
+        },
+        {
+          "name": "Rollback Test",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/test/transaction/rollback"
+          }
+        }
+      ]
+    }
+  ]
+}

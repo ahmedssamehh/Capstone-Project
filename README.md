@@ -766,3 +766,58 @@ For issues or questions, check the documentation files:
 - `SERVICE_LAYER_DOCUMENTATION.md` - Service layer details
 - `TENANT_CONTEXT_USAGE.md` - Tenant context usage
 - `REST_API_DOCUMENTATION.md` - Complete API reference
+
+## Enterprise Phase 1 Compliance Notes
+
+### Unified Error Contract
+
+All API errors now use a single JSON shape:
+
+```json
+{
+  "timestamp": "2026-05-16T16:20:47.126Z",
+  "status": 403,
+  "error": "Forbidden",
+  "message": "Access denied",
+  "path": "/api/projects",
+  "correlationId": "6f844d3c-d11d-4d4d-8664-70b5e0bfec92",
+  "details": []
+}
+```
+
+### RBAC Rules
+
+- `TENANT_ADMIN` required for:
+  - `POST /api/projects/**`
+  - `PATCH /api/tasks/**`
+  - `DELETE /api/tasks/**`
+  - `POST|PUT|DELETE /api/users/**`
+  - `/api/v1/tenants/**`
+- `TENANT_USER` can access authenticated read endpoints but cannot perform admin mutations.
+
+### Tenant Isolation Contract
+
+- Tenant context is extracted in one trusted place: `JwtAuthenticationFilter`.
+- Tenant context is cleared on every request (`finally` block).
+- Resource access uses tenant-safe repository methods such as:
+  - `findByIdAndTenantId(...)`
+  - `existsByEmailAndTenantId(...)`
+  - `findByTenantId(...)`
+
+### Additional cURL Verification
+
+```bash
+# Unauthorized request -> 401 + unified error payload
+curl -i http://localhost:8080/api/projects
+
+# Login as TENANT_USER
+USER_TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@demo.com","password":"user123"}' | jq -r '.token')
+
+# Forbidden mutation for TENANT_USER -> 403
+curl -i -X POST http://localhost:8080/api/projects \
+  -H "Authorization: Bearer $USER_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Should Fail","description":"RBAC check","projectKey":"DENY"}'
+```

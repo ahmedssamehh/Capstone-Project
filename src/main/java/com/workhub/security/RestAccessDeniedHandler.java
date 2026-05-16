@@ -1,7 +1,7 @@
 package com.workhub.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.workhub.dto.ErrorResponse;
+import com.workhub.exception.ApiError;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,7 +13,7 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.List;
+import java.time.OffsetDateTime;
 
 @Component
 @RequiredArgsConstructor
@@ -27,9 +27,13 @@ public class RestAccessDeniedHandler implements AccessDeniedHandler {
             HttpServletResponse response,
             AccessDeniedException accessDeniedException
     ) throws IOException, ServletException {
-        ErrorResponse body = ErrorResponse.builder()
-                .message("Unauthorized access")
-                .details(List.of("Access denied", "Insufficient permissions"))
+        ApiError body = ApiError.builder()
+                .timestamp(OffsetDateTime.now())
+                .status(HttpStatus.FORBIDDEN.value())
+                .error(HttpStatus.FORBIDDEN.getReasonPhrase())
+                .message("Access denied")
+                .path(request.getRequestURI())
+                .correlationId((String) request.getAttribute(CorrelationIdFilter.ATTRIBUTE_NAME))
                 .build();
 
         response.setStatus(HttpStatus.FORBIDDEN.value());

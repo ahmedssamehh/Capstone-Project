@@ -7,13 +7,13 @@ import com.workhub.service.TenantService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -27,17 +27,20 @@ public class TenantController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<TenantResponse> createTenant(@Valid @RequestBody CreateTenantRequest request) {
         TenantResponse response = tenantService.createTenant(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<TenantResponse>> listTenants() {
-        return ResponseEntity.ok(tenantService.listTenants());
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
+    public ResponseEntity<TenantResponse> currentTenant() {
+        return ResponseEntity.ok(tenantService.getCurrentTenant());
     }
 
     @GetMapping("/context")
+    @PreAuthorize("hasRole('TENANT_ADMIN')")
     public ResponseEntity<Map<String, String>> tenantContext() {
         Long tenantId = TenantContext.getTenantId();
         return ResponseEntity.ok(Map.of("tenantId", tenantId == null ? "not-set" : tenantId.toString()));

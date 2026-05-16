@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
  * - Clear: TenantContext.clear()
  * 
  * Important: Always clear the context after request processing to prevent
- * memory leaks in thread pools. This is handled automatically by TenantContextFilter.
+ * memory leaks in thread pools. This is handled in JwtAuthenticationFilter.
  */
 @Slf4j
 public final class TenantContext {

@@ -39,14 +39,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
      */
     Optional<User> findByEmailIgnoreCase(String email);
 
-    /**
-     * Check if user exists by email
-     * 
-     * @param email User email
-     * @return true if user exists
-     */
-    boolean existsByEmail(String email);
-
     // ========================================
     // TENANT-SCOPED QUERIES
     // ========================================
@@ -247,6 +239,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
            "FROM User u WHERE u.email = :email AND u.tenant.id = :tenantId")
     boolean existsByEmailInTenant(@Param("email") String email, @Param("tenantId") Long tenantId);
 
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END " +
+           "FROM User u WHERE u.email = :email AND u.tenant.id = :tenantId")
+    boolean existsByEmailAndTenantId(@Param("email") String email, @Param("tenantId") Long tenantId);
+
     /**
      * Check if email exists in tenant (excluding specific user)
      * Useful for update operations
@@ -262,5 +258,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
         @Param("email") String email, 
         @Param("tenantId") Long tenantId, 
         @Param("excludeUserId") Long excludeUserId
+    );
+
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END " +
+           "FROM User u WHERE u.email = :email AND u.tenant.id = :tenantId AND u.id <> :id")
+    boolean existsByEmailAndTenantIdAndIdNot(
+            @Param("email") String email,
+            @Param("tenantId") Long tenantId,
+            @Param("id") Long id
     );
 }

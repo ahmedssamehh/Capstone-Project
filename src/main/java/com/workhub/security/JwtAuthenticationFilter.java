@@ -50,37 +50,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 final String jwt = authHeader.substring(7);
                 final String email = jwtUtil.extractEmail(jwt);
                 final Long tenantId = jwtUtil.extractTenantId(jwt);
+                final String role = jwtUtil.extractRole(jwt);
 
                 // If email is present and no authentication exists
                 if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    
-                    // Load user details
                     UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-                    // Validate token
                     if (jwtUtil.validateToken(jwt, userDetails)) {
-                        
-                        // IMPORTANT: Set tenant context from JWT
-                        // This makes tenantId available throughout the request lifecycle
+                        if (!(userDetails instanceof CustomUserDetails customUserDetails)) {
+                            filterChain.doFilter(request, response);
+                            return;
+                        }
+                        if (tenantId == null || !tenantId.equals(customUserDetails.getTenantId())) {
+                            log.warn("JWT tenant mismatch for user {}", email);
+                            filterChain.doFilter(request, response);
+                            return;
+                        }
+                        if (role == null || !role.equals(customUserDetails.getRole())) {
+                            log.warn("JWT role mismatch for user {}", email);
+                            filterChain.doFilter(request, response);
+                            return;
+                        }
+
                         TenantContext.setTenantId(tenantId);
-                        
-                        // Create authentication token
+
                         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                                 userDetails,
                                 null,
                                 userDetails.getAuthorities()
                         );
-                        
+
                         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        
-                        // Set authentication in security context
                         SecurityContextHolder.getContext().setAuthentication(authToken);
-                        
+
                         log.debug("Authenticated user: {} (tenant: {})", email, tenantId);
                     }
                 }
             } catch (Exception e) {
-                log.error("Cannot set user authentication: {}", e.getMessage());
+                log.warn("Cannot set user authentication: {}", e.getMessage());
             }
 
             filterChain.doFilter(request, response);

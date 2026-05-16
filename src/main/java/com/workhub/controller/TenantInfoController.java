@@ -7,7 +7,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,6 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/tenant")
 @RequiredArgsConstructor
 @Slf4j
+@Profile("!prod")
+@PreAuthorize("hasRole('TENANT_ADMIN')")
 public class TenantInfoController {
 
     /**

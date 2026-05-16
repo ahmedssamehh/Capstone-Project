@@ -23,6 +23,21 @@ spring:
       write-dates-as-timestamps: false
     time-zone: UTC
 
+  # RabbitMQ broker connection (environment-friendly defaults)
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:workhub}
+    password: ${RABBITMQ_PASSWORD:workhub}
+    virtual-host: ${RABBITMQ_VHOST:/}
+
+# WorkHub messaging topology (direct exchange pattern)
+workhub:
+  rabbitmq:
+    exchange: ${WORKHUB_RABBIT_EXCHANGE:workhub.direct}
+    queue: ${WORKHUB_RABBIT_QUEUE:workhub.events.queue}
+    routing-key: ${WORKHUB_RABBIT_ROUTING_KEY:workhub.events}
+
 server:
   port: 8080
   error:
