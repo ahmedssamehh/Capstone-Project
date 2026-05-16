@@ -1,57 +1,257 @@
+# =============================================================================
+# WorkHub Enterprise SaaS — Continuous Integration (production-ready)
+# =============================================================================
+# Jobs:
+#   1. unit-tests         — fast compile + smoke (H2, no Testcontainers)
+#   2. integration-tests  — RabbitMQ Testcontainers + full integration suite
+#   3. package-and-docker — reproducible JAR + image build (Buildx + GHA cache)
+#
+# Docs: .github/CI.md
+# =============================================================================
+
 name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches:
+      - main
+      - master
+      - develop
+      - "feature/**"
   pull_request:
+    branches:
+      - main
+      - master
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: read
+
+env:
+  JAVA_VERSION: "17"
+  JAVA_DISTRIBUTION: temurin
+  MAVEN_OPTS: >-
+    -Dhttp.keepAlive=false
+    -Dmaven.wagon.http.pool=false
+    -Dmaven.artifact.threads=10
+  # Testcontainers on GitHub-hosted ubuntu-latest
+  TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock
+  TESTCONTAINERS_RYUK_DISABLED: "false"
+  TESTCONTAINERS_CHECKS_DISABLE: "false"
+  # Minimum integration tests expected (fail if Docker skips Testcontainers suite)
+  CI_MIN_INTEGRATION_TESTS: "30"
+  RABBITMQ_TEST_IMAGE: "rabbitmq:3.13-management"
 
 jobs:
-  test:
+  unit-tests:
+    name: Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            m2-${{ runner.os }}-
+
+      - name: Compile and run unit tests
+        run: >
+          mvn -B -ntp test
+          -Dtest='!*IntegrationTest,!Phase2EnterpriseIntegrationTest'
+
+      - name: Verify Surefire (zero skips)
+        run: python .github/scripts/verify-no-skipped-tests.py --label unit --min-tests 1
+
+      - name: Publish unit test results
+        if: always()
+        uses: actions/upload-test-results@v4
+        with:
+          name: Unit Test Results
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: "true"
+
+      - name: Upload Surefire artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-unit-${{ github.run_id }}
+          path: |
+            target/surefire-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  integration-tests:
+    name: Integration Tests (Testcontainers)
+    runs-on: ubuntu-latest
+    needs: unit-tests
     timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 17
+      - name: Set up Java ${{ env.JAVA_VERSION }}
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
-          java-version: "17"
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
           cache: maven
 
-      - name: Verify Docker availability for Testcontainers
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            m2-${{ runner.os }}-
+
+      - name: Verify Docker (Testcontainers prerequisite)
         run: |
           docker version
           docker info
+          docker run --rm hello-world
 
-      - name: Build and run full test suite (unit + integration)
-        run: mvn -B -U clean test
+      - name: Pre-pull RabbitMQ Testcontainers image
+        run: docker pull ${{ env.RABBITMQ_TEST_IMAGE }}
 
-      - name: Fail if any tests were skipped
-        shell: bash
+      - name: Run integration tests (with retry)
+        uses: nick-fields/retry@v3
+        env:
+          CI: true
+        with:
+          timeout_minutes: 22
+          max_attempts: 2
+          retry_on: error
+          command: >
+            mvn -B -ntp test
+            -Dtest='*IntegrationTest,Phase2EnterpriseIntegrationTest'
+
+      - name: Verify Surefire (zero skips, minimum test count)
+        run: >
+          python .github/scripts/verify-no-skipped-tests.py
+          --label integration
+          --min-tests ${{ env.CI_MIN_INTEGRATION_TESTS }}
+
+      - name: Publish integration test results
+        if: always()
+        uses: actions/upload-test-results@v4
+        with:
+          name: Integration Test Results
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: "true"
+
+      - name: Upload Surefire artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-integration-${{ github.run_id }}
+          path: |
+            target/surefire-reports/
+          retention-days: 14
+          if-no-files-found: warn
+
+  package-and-docker:
+    name: Package & Docker Build
+    runs-on: ubuntu-latest
+    needs: integration-tests
+    timeout-minutes: 30
+    outputs:
+      image-tag: workhub:ci-${{ github.sha }}
+      jar-name: workhub-0.0.1-SNAPSHOT.jar
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: maven
+
+      - name: Cache Maven packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: m2-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            m2-${{ runner.os }}-
+
+      - name: Build executable JAR
+        run: mvn -B -ntp -DskipTests clean package
+
+      - name: Verify JAR
         run: |
-          python - <<'PY'
-          import glob
-          import os
-          import sys
-          import xml.etree.ElementTree as ET
+          JAR="target/workhub-0.0.1-SNAPSHOT.jar"
+          test -f "$JAR"
+          jar tf "$JAR" | head -5
+          ls -lh "$JAR"
+          sha256sum "$JAR" | tee target/workhub-jar.sha256
 
-          files = glob.glob("target/surefire-reports/TEST-*.xml")
-          if not files:
-              print("No surefire XML reports found.")
-              sys.exit(1)
+      - name: Upload executable JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: workhub-jar-${{ github.sha }}
+          path: |
+            target/workhub-0.0.1-SNAPSHOT.jar
+            target/workhub-jar.sha256
+          retention-days: 30
 
-          skipped = 0
-          total = 0
-          for f in files:
-              root = ET.parse(f).getroot()
-              skipped += int(root.attrib.get("skipped", "0"))
-              total += int(root.attrib.get("tests", "0"))
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-          print(f"Total tests: {total}, skipped: {skipped}")
-          if skipped > 0:
-              print("Failing build because skipped tests are not allowed in Phase 2 CI.")
-              sys.exit(1)
-          PY
+      - name: Build Docker image (reproducible)
+        id: docker-build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: |
+            workhub:ci-${{ github.sha }}
+            workhub:ci-latest
+          cache-from: type=gha,scope=workhub-${{ github.ref_name }}
+          cache-to: type=gha,mode=max,scope=workhub-${{ github.ref_name }}
+          provenance: false
+
+      - name: Verify Docker image
+        run: |
+          IMAGE="workhub:ci-${{ github.sha }}"
+          docker image inspect "$IMAGE"
+          docker inspect --format='{{.Id}}' "$IMAGE" | tee target/workhub-image-id.txt
+          echo "### Docker image" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Tag: \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ID: \`$(cat target/workhub-image-id.txt)\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload build metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-build-metadata-${{ github.sha }}
+          path: |
+            target/workhub-jar.sha256
+            target/workhub-image-id.txt
+          retention-days: 30
