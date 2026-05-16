@@ -10,6 +10,7 @@ replicas:
 
 secretGenerator:
   - name: workhub-api-secrets
+    # Bootstrap once: ./scripts/k8s-overlay-bootstrap.sh (or .ps1)
     envs:
       - secrets.env
     options:

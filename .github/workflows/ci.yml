@@ -45,6 +45,7 @@ env:
   TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: /var/run/docker.sock
   TESTCONTAINERS_RYUK_DISABLED: "false"
   TESTCONTAINERS_CHECKS_DISABLE: "false"
+  TESTCONTAINERS_REUSE_ENABLE: "false"
   # Minimum integration tests expected (fail if Docker skips Testcontainers suite)
   CI_MIN_INTEGRATION_TESTS: "30"
   RABBITMQ_TEST_IMAGE: "rabbitmq:3.13-management"
@@ -132,6 +133,12 @@ jobs:
           docker info
           docker run --rm hello-world
 
+      - name: Record Docker baseline diagnostics
+        run: |
+          mkdir -p target/ci-diagnostics
+          docker ps -a > target/ci-diagnostics/docker-ps-before-tests.txt
+          docker images > target/ci-diagnostics/docker-images-before-tests.txt
+
       - name: Pre-pull RabbitMQ Testcontainers image
         run: docker pull ${{ env.RABBITMQ_TEST_IMAGE }}
 
@@ -146,6 +153,12 @@ jobs:
           command: >
             mvn -B -ntp test
             -Dtest='*IntegrationTest,Phase2EnterpriseIntegrationTest'
+
+      - name: Collect integration diagnostics on failure
+        if: failure()
+        run: |
+          chmod +x .github/scripts/collect-integration-diagnostics.sh
+          .github/scripts/collect-integration-diagnostics.sh target/ci-diagnostics
 
       - name: Verify Surefire (zero skips, minimum test count)
         run: >
@@ -169,6 +182,16 @@ jobs:
           name: surefire-integration-${{ github.run_id }}
           path: |
             target/surefire-reports/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload integration diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-diagnostics-${{ github.run_id }}
+          path: |
+            target/ci-diagnostics/
           retention-days: 14
           if-no-files-found: warn
 

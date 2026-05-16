@@ -1,0 +1,55 @@
+name: Terraform Validate
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-validate.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-validate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-validate:
+    name: Terraform Validate (${{ matrix.stack }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        stack:
+          - terraform
+          - terraform/environments/dev
+          - terraform/environments/staging
+          - terraform/environments/production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform fmt check (root)
+        run: terraform -chdir=terraform fmt -check -recursive
+
+      - name: Terraform init (no backend)
+        run: terraform -chdir=${{ matrix.stack }} init -backend=false
+
+      - name: Terraform validate
+        run: terraform -chdir=${{ matrix.stack }} validate
