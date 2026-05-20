@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -24,6 +26,8 @@ import java.util.Set;
     @Index(name = "idx_tenant_plan", columnList = "plan")
 })
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -35,12 +39,16 @@ public class Tenant {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
+    @EqualsAndHashCode.Include
+    @ToString.Include
     private Long id;
 
     /**
      * Tenant name - Organization or company name
      */
     @Column(name = "name", nullable = false, length = 200)
+    @EqualsAndHashCode.Include
+    @ToString.Include
     private String name;
 
     /**

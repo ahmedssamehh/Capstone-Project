@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
  * Remove this in production!
  */
 @Configuration
+@org.springframework.context.annotation.Profile("!prod")
 @RequiredArgsConstructor
 @Slf4j
 public class DataInitializer {

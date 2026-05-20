@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -30,6 +32,8 @@ import java.util.Set;
     }
 )
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -42,6 +46,8 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", updatable = false, nullable = false)
+    @EqualsAndHashCode.Include
+    @ToString.Include
     private Long id;
 
     /**
@@ -63,6 +69,8 @@ public class User {
      * Used for authentication
      */
     @Column(name = "email", nullable = false, unique = true, length = 255)
+    @EqualsAndHashCode.Include
+    @ToString.Include
     private String email;
 
     /**

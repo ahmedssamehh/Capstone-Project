@@ -63,7 +63,9 @@ class Phase2EnterpriseIntegrationTest {
 
     @Container
     static final RabbitMQContainer RABBITMQ = new RabbitMQContainer("rabbitmq:3.13-management")
-            .withUser("workhub", "workhub");
+            .withVhost("workhub")
+            .withUser("workhub", "workhub")
+            .withPermission("workhub", "workhub", ".*", ".*", ".*");
 
     @DynamicPropertySource
     static void registerRabbitProperties(DynamicPropertyRegistry registry) {
@@ -71,6 +73,8 @@ class Phase2EnterpriseIntegrationTest {
         registry.add("spring.rabbitmq.port", RABBITMQ::getAmqpPort);
         registry.add("spring.rabbitmq.username", () -> "workhub");
         registry.add("spring.rabbitmq.password", () -> "workhub");
+        registry.add("spring.rabbitmq.virtual-host", () -> "workhub");
+                registry.add("spring.rabbitmq.dynamic", () -> true);
         registry.add("spring.rabbitmq.listener.simple.auto-startup", () -> true);
         registry.add("workhub.rabbitmq.exchange", () -> "workhub.jobs.direct");
         registry.add("workhub.rabbitmq.queue", () -> "workhub.jobs.queue");
